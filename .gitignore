@@ -1,5 +1,7 @@
 .venv
 .idea
 .git
-entities.py
+config
 main.py
+db_api/create_tables.py
+db_api/db_api.py
