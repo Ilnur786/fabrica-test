@@ -19,6 +19,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# There, instead SQLAlchemy Base declarative model is using flask_sqlalchemy.SQLAlchemy.Model class which is build on original SQLAlchemy.Base class (declarative_base()).
+# It has some features like working with sessions and other.
+# More about that was written on https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
 db = SQLAlchemy(app)
 
 datetime_format = '%Y-%m-%d %H:%M:%S'
