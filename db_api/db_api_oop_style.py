@@ -18,9 +18,7 @@ class Distribution(Base):
 	distr_text = Column(String, comment='message text')
 	client_filter = Column(String, comment='get some clients with filtering them by mobile operator code, tag or etc.')
 	distr_end_date = Column(DateTime, comment='date when distribution will be ended')
-	message = relationship("Message", back_populates="distribution")
-
-
+	message = relationship("Message", back_populates="distribution", uselist=False)  # uselist=False is declarate one-to-one relate
 
 
 class Client(Base):
@@ -35,14 +33,17 @@ class Client(Base):
 	timezone = Column(String(30), default=tzlocal.get_localzone_name(), comment='it looks like "Europe/Moscow"')
 	message = relationship("Message", back_populates="client")
 
+
 class Message(Base):
 	__tablename__ = 'messages'
 
 	id = Column(Integer, primary_key=True)
 	send_date = Column(DateTime, default=datetime.now(), comment='date when message was send')
 	sending_status = Column(Boolean, default=True)
-	dist_id = Column(Integer, ForeignKey('distributions.id'), comment='distribution id, where message was sended')
+	# one to one
+	distribution_id = Column(Integer, ForeignKey('distributions.id'), comment='distribution id, where message was sended')
 	distribution = relationship("Distribution", back_populates="message")
+	# one to many. to one message can relate multiple clients
 	client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
 	client = relationship('Client', back_populates='message')
 
