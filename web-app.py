@@ -22,7 +22,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # There, instead SQLAlchemy Base declarative model is using flask_sqlalchemy.SQLAlchemy.Model class which is build on original SQLAlchemy.Base class (declarative_base()).
 # It has some features like working with sessions and other.
-# More about that was written on https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
+# More about that was written here: https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
+# The GENERAL differences between libs are shown here: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 db = SQLAlchemy(app)
 
 datetime_format = '%Y-%m-%d %H:%M:%S'
