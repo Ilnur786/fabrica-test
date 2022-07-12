@@ -1,0 +1,63 @@
+from marshmallow import Schema, fields, ValidationError, pre_load, validates_schema
+from marshmallow.validate import Length
+from functools import partial
+from datetime import datetime
+
+datetime_format = '%Y-%m-%d %H:%M:%S'
+
+mobile_number_len_validator = Length(min=11, max=15)
+
+RequiredStr = partial(fields.Str, required=True)
+RequiredInt = partial(fields.Int, required=True)
+RequiredDateTime = partial(fields.DateTime, required=True)
+
+def validate_datetime(dt):
+	dt = datetime.strptime(dt, datetime_format)
+	if dt < datetime.now():
+		raise ValidationError('datetime cannot be in the past')
+
+class BaseSchema(Schema):
+	class Meta:
+		dateformat = '%Y-%m-%d %H:%M:%S'
+
+class DistributionSchema(BaseSchema):
+	id = RequiredInt(dump_only=True)
+	start_date = RequiredDateTime(format=datetime_format)
+	text = RequiredStr()
+	client_filter = RequiredStr
+	end_date = RequiredDateTime(format=datetime_format)
+
+
+class ClientSchema(BaseSchema):
+	id = RequiredInt(dump_only=True)
+	mobile_number = RequiredStr()
+	mobile_operator_code = fields.Str()  # mobile_operator_code isn't required cause, that is just three number after country code
+	tag = RequiredStr()
+	timezone = RequiredStr
+
+	@validates_schema
+	def validate_mobile_number(self, data, **kwargs):
+		if not 11 <= len(data['mobile_number']) <= 15:
+			raise ValidationError('mobile_number must be from 11 to 15 characters', 'mobile_number')
+
+	@validates_schema
+	def validate_mobile_number_code(self, data, **kwargs):
+		if not len(data['mobile_operator_code']) == 3:
+			raise ValidationError('mobile_number_code must be equal 3 characters', 'mobile_number_code')
+
+	@pre_load(pass_many=True)
+	def get_mobile_operator_code(self, data, many, **kwargs):
+		if many:
+			for el in data:
+				if not el.get('mobile_operator_code'):
+					el['mobile_operator_code'] = el['mobile_number'][1:4]
+		else:
+			if not data.get('mobile_operator_code'):
+				data['mobile_operator_code'] = data['mobile_number'][1:4]
+		return data
+
+
+class MessageSchema(BaseSchema):
+	id = RequiredInt(dump_only=True)
+	send_date = RequiredDateTime()
+	status =
