@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import tzlocal
 import pytz
 import secrets
+import logging
 
 
 env.read_envfile('config/.env.dev')
@@ -38,7 +39,7 @@ class Distribution(db.Model):
 	# NOW it need declaration of given time format, in the API and convert str date into datetime object (strptime)
 	distr_start_date = db.Column(db.DateTime, default=datetime.now(), comment='date when distribution will be started')
 	distr_text = db.Column(db.String, comment='message text')
-	client_filter = db.Column(db.String, comment='get some clients with filtering them by mobile operator code, tag or etc.')
+	client_filter = db.Column(db.String, nullable=True, comment='get some clients with filtering them by mobile operator code, tag or etc.')
 	distr_end_date = db.Column(db.DateTime, comment='date when distribution will be ended')
 	message = db.relationship("Message", backref="distributions", lazy=True, uselist=False)
 
@@ -80,27 +81,36 @@ class Message(db.Model):
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, client.id: {self.client_id}>'
 
 
-db.create_all()
+@app.route('/api/v1/client/create', methods=['get', 'post'])
+def create_client():
+	if request.method == 'POST':
+		data = request.get_json()
+	else:
+		return 'Unsupported request method'
 
-d = Distribution(distr_start_date=datetime.now(), distr_text='hello', client_filter='mts', distr_end_date=datetime.now() + timedelta(days=1))
-c = Client(telephone_number="79177456985", mobile_operator_code="917", tag='tag', timezone='Europe/Moscow')
-db.session.add_all([d, c])
-m = Message(send_date=datetime.now(), distribution_id=1, client_id=2)
-db.session.add(m)
-db.session.commit()
-print("A distr entity was added to the table")
-
-# read the data
-# row = Distribution.query.filter_by(id="1").first()
-# print(row)
-rows = Distribution.query.all()
-print(*rows, sep='\n')
-print('=' * 150)
-clients = Client.query.all()
-print(*clients, sep='\n')
-print('=' * 150)
-messages = Message.query.all()
-print(*messages, sep='\n')
 
 if __name__ == "__main__":
+	db.create_all()  # it should be here
+
+	d = Distribution(distr_start_date=datetime.now(), distr_text='hello', client_filter='mts',
+					 distr_end_date=datetime.now() + timedelta(days=1))
+	c = Client(telephone_number="79177456985", mobile_operator_code="917", tag='tag', timezone='Europe/Moscow')
+	db.session.add_all([d, c])
+	m = Message(send_date=datetime.now(), distribution_id=1, client_id=2)
+	db.session.add(m)
+	db.session.commit()
+	print("A distr entity was added to the table")
+
+	# read the data
+	# row = Distribution.query.filter_by(id="1").first()
+	# print(row)
+	rows = Distribution.query.all()
+	print(*rows, sep='\n')
+	print('=' * 150)
+	clients = Client.query.all()
+	print(*clients, sep='\n')
+	print('=' * 150)
+	messages = Message.query.all()
+	print(*messages, sep='\n')
+
 	app.run(debug=True)
