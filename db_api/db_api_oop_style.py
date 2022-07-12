@@ -27,7 +27,7 @@ class Client(Base):
 	id = Column(Integer, primary_key=True)
 	telephone_number = Column(Integer, comment='client telephone number')  # need constrainting length before added into db
 	mobile_operator_code = Column(Integer, comment='7XXX9354758 - three number after country code')  # need constrainting length before added into db
-	tag = Column(String, nullable=True, comment='free fillable field. Can be nullable')
+	tag = Column(String, comment='free fillable tag')
 	# after API will be ready, user can give tz in "Europe/Moscow" like format. Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 	# or it can look like datetime.timezone('MSC') with offset from UTC-time.
 	timezone = Column(String(30), default=tzlocal.get_localzone_name(), comment='it looks like "Europe/Moscow"')
