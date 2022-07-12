@@ -3,29 +3,31 @@ from marshmallow.validate import Length
 from functools import partial
 from datetime import datetime
 
-datetime_format = '%Y-%m-%d %H:%M:%S'
-
 mobile_number_len_validator = Length(min=11, max=15)
 
 RequiredStr = partial(fields.Str, required=True)
 RequiredInt = partial(fields.Int, required=True)
 RequiredDateTime = partial(fields.DateTime, required=True)
 
+
 def validate_datetime(dt):
+	datetime_format = '%Y-%m-%d %H:%M:%S'
 	dt = datetime.strptime(dt, datetime_format)
 	if dt < datetime.now():
 		raise ValidationError('datetime cannot be in the past')
 
+
 class BaseSchema(Schema):
 	class Meta:
-		dateformat = '%Y-%m-%d %H:%M:%S'
+		datetimeformat = '%Y-%m-%d %H:%M:%S'
+
 
 class DistributionSchema(BaseSchema):
 	id = RequiredInt(dump_only=True)
-	start_date = RequiredDateTime(format=datetime_format)
+	start_date = RequiredDateTime(validate=validate_datetime)
 	text = RequiredStr()
 	client_filter = RequiredStr
-	end_date = RequiredDateTime(format=datetime_format)
+	end_date = RequiredDateTime(validate=validate_datetime)
 
 
 class ClientSchema(BaseSchema):
@@ -59,5 +61,7 @@ class ClientSchema(BaseSchema):
 
 class MessageSchema(BaseSchema):
 	id = RequiredInt(dump_only=True)
-	send_date = RequiredDateTime()
-	status =
+	send_date = RequiredDateTime(validate=validate_datetime)
+	# status isn't required field at request, cause it info field, which fill automatic
+	dist_id = RequiredInt()
+	client_id = RequiredInt()
