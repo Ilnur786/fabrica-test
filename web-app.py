@@ -2,7 +2,8 @@ from flask import Flask, request, g, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from envparse import env
 from datetime import datetime, timedelta
-import tzlocal
+from json_validator.shema import DistributionSchema, ClientSchema, MessageSchema
+from marshmallow import ValidationError
 import pytz
 import secrets
 import logging
@@ -26,6 +27,13 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # More about that was written here: https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
 # The GENERAL differences between libs are shown here: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 db = SQLAlchemy(app)
+
+distribution_schema = DistributionSchema()
+distributions_schema = DistributionSchema(many=True)
+client_schema = ClientSchema()
+clients_schema = ClientSchema(many=True)
+message_schema = MessageSchema()
+messages_schema = MessageSchema(many=True)
 
 datetime_format = '%Y-%m-%d %H:%M:%S'
 
@@ -52,16 +60,16 @@ class Client(db.Model):
 	__tablename__ = 'clients'
 
 	id = db.Column(db.Integer, primary_key=True)
-	telephone_number = db.Column(db.String(15), comment='client telephone number')  # need constrainting length before added into db
+	mobile_number = db.Column(db.String(15), comment='client telephone number')  # need constrainting length before added into db
 	mobile_operator_code = db.Column(db.String(5), comment='7XXX9354758 - three number after country code')  # need constrainting length before added into db
-	tag = db.Column(db.String, nullable=True, comment='free fillable field. Can be nullable')
+	tag = db.Column(db.String, comment='free fillable field. Can be nullable')
 	# after API will be ready, user can give tz in "Europe/Moscow" like format. Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 	# or it can look like datetime.timezone('MSC') with offset from UTC-time.
-	timezone = db.Column(db.String(30), default=tzlocal.get_localzone_name(), comment='it looks like "Europe/Moscow"')
+	timezone = db.Column(db.String(30), comment='it looks like "Europe/Moscow"')
 	message = db.relationship("Message", backref="clients", lazy=True)
 
 	def __repr__(self):
-		return f'<Client: id: {self.id}, telephone_number: "{self.telephone_number}", ' \
+		return f'<Client: id: {self.id}, mobile_number: "{self.mobile_number}", ' \
 			   f'operator_code: "{self.mobile_operator_code}", tag: "{self.tag}", timezone: "{self.timezone}">'
 
 
@@ -81,36 +89,53 @@ class Message(db.Model):
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, client.id: {self.client_id}>'
 
 
-@app.route('/api/v1/client/create', methods=['get', 'post'])
+@app.route('/api/v1/client/', methods=['get', 'post'])
 def create_client():
 	if request.method == 'POST':
-		data = request.get_json()
+		json_data = request.get_json()
+		if not json_data:
+			return {"message": "No input data provided"}, 400
+		# Validate and deserialize input
+		try:
+			data = client_schema.load(json_data)
+		except ValidationError as err:
+			return err.messages, 422
+		client = Client.query.filter_by(mobile_number=data['mobile_number']).first()
+		if client is None:
+			# Create a new author
+			client = Client(**data)
+			db.session.add(client)
+			db.session.commit()
+		result = client_schema.dump(client)
+		return {"message": "Created new client.", "client": result}
 	else:
-		return 'Unsupported request method'
+		clients = Client.query.all()
+		result = clients_schema.dump(clients, many=True)
+		return {"messages": result}
 
 
 if __name__ == "__main__":
 	db.create_all()  # it should be here
 
-	d = Distribution(distr_start_date=datetime.now(), distr_text='hello', client_filter='mts',
-					 distr_end_date=datetime.now() + timedelta(days=1))
-	c = Client(telephone_number="79177456985", mobile_operator_code="917", tag='tag', timezone='Europe/Moscow')
-	db.session.add_all([d, c])
-	m = Message(send_date=datetime.now(), distribution_id=1, client_id=2)
-	db.session.add(m)
-	db.session.commit()
-	print("A distr entity was added to the table")
-
-	# read the data
-	# row = Distribution.query.filter_by(id="1").first()
-	# print(row)
-	rows = Distribution.query.all()
-	print(*rows, sep='\n')
-	print('=' * 150)
-	clients = Client.query.all()
-	print(*clients, sep='\n')
-	print('=' * 150)
-	messages = Message.query.all()
-	print(*messages, sep='\n')
+	# d = Distribution(distr_start_date=datetime.now(), distr_text='hello', client_filter='mts',
+	# 				 distr_end_date=datetime.now() + timedelta(days=1))
+	# c = Client(mobile_number="79177456985", mobile_operator_code="917", tag='tag', timezone='Europe/Moscow')
+	# db.session.add_all([d, c])
+	# m = Message(send_date=datetime.now(), distribution_id=1, client_id=2)
+	# db.session.add(m)
+	# db.session.commit()
+	# print("A distr entity was added to the table")
+	#
+	# # # read the data
+	# # row = Distribution.query.filter_by(id="1").first()
+	# # print(row)
+	# rows = Distribution.query.all()
+	# print(*rows, sep='\n')
+	# print('=' * 150)
+	# clients = Client.query.all()
+	# print(*clients, sep='\n')
+	# print('=' * 150)
+	# messages = Message.query.all()
+	# print(*messages, sep='\n')
 
 	app.run(debug=True)
