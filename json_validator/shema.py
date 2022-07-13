@@ -2,6 +2,7 @@ from marshmallow import Schema, fields, ValidationError, pre_load, validates_sch
 from marshmallow.validate import Length
 from functools import partial
 from datetime import datetime
+import tzlocal
 
 mobile_number_len_validator = Length(min=11, max=15)
 
@@ -23,7 +24,7 @@ class BaseSchema(Schema):
 
 
 class DistributionSchema(BaseSchema):
-	id = RequiredInt(dump_only=True)
+	id = fields.Int(dump_only=True)
 	start_date = RequiredDateTime(validate=validate_datetime)
 	text = RequiredStr()
 	client_filter = RequiredStr
@@ -31,11 +32,11 @@ class DistributionSchema(BaseSchema):
 
 
 class ClientSchema(BaseSchema):
-	id = RequiredInt(dump_only=True)
+	id = fields.Int(dump_only=True)
 	mobile_number = RequiredStr()
 	mobile_operator_code = fields.Str()  # mobile_operator_code isn't required cause, that is just three number after country code
 	tag = RequiredStr()
-	timezone = RequiredStr
+	timezone = fields.Str()
 
 	@validates_schema
 	def validate_mobile_number(self, data, **kwargs):
@@ -46,6 +47,19 @@ class ClientSchema(BaseSchema):
 	def validate_mobile_number_code(self, data, **kwargs):
 		if not len(data['mobile_operator_code']) == 3:
 			raise ValidationError('mobile_number_code must be equal 3 characters', 'mobile_number_code')
+
+	@validates_schema
+	def validate_timezone(self, data, **kwargs):
+		tz = data.get('timezone')
+		if tz:
+			if not len(tz) > 30:
+				return ValidationError('timezone must be shorter then 30 characters', 'timezone')
+
+	@pre_load
+	def get_timezone(self, data, **kwargs):
+		if not data.get('timezone'):
+			data['timezone'] = tzlocal.get_localzone_name()
+		return data
 
 	@pre_load(pass_many=True)
 	def get_mobile_operator_code(self, data, many, **kwargs):
@@ -60,7 +74,7 @@ class ClientSchema(BaseSchema):
 
 
 class MessageSchema(BaseSchema):
-	id = RequiredInt(dump_only=True)
+	id = fields.Int(dump_only=True)
 	send_date = RequiredDateTime(validate=validate_datetime)
 	# status isn't required field at request, cause it info field, which fill automatic
 	dist_id = RequiredInt()
