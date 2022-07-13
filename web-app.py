@@ -129,6 +129,8 @@ def delete_client_by_pk(pk):
 	except InvalidRequestError as err:
 		return {"messages": err.args[0]}
 	client = Client.query.filter_by(id=pk).first()
+	if not client:
+		return {"message": "No one client with given id"}
 	result = client_schema.dump(client)
 	db.session.commit()
 	return {"message": "Successful delete", "client": result}
@@ -155,7 +157,7 @@ def update_clients_attributes():
 			return {"messages": err.args[0]}
 		db.session.commit()
 		result = clients_schema.dump(updated_clients, many=True)
-		return {"messages": "Successful update", "client": result}
+		return {"message": "Successful update", "client": result}
 	else:
 		return {"message": "GET method is not implemented"}, 405
 
@@ -173,36 +175,64 @@ def update_client_attributes(pk):
 			return {"messages": err.args[0]}
 		db.session.commit()
 		result = client_schema.dump(client)
-		return {"messages": "Successful update", "client": result}
+		return {"message": "Successful update", "client": result}
 	else:
 		return {"message": "GET method is not implemented"}, 405
 
 
-@app.route('/api/v1/client/', methods=['get', 'post'])
-def create_client():
-	if request.method == 'POST':
-		json_data = request.get_json()
-		if not json_data:
-			return {"message": "No input data provided"}, 400
-		# Validate and deserialize input
+@app.route('/api/v1/client', methods=['get'])
+def get_clients():
+	args = request.args
+	if args.get('all'):
 		try:
-			data = client_schema.load(json_data)
-		except ValidationError as err:
-			return err.messages, 422
-		client = Client.query.filter_by(mobile_number=data['mobile_number']).first()
-		if client is None:
-			# Create a new author
-			client = Client(**data)
-			db.session.add(client)
-			db.session.commit()
-			result = client_schema.dump(client)
-			return {"message": "Created new client", "client": result}
-		else:
-			# return existed client
-			result = client_schema.dump(client)
-			return {"message": "Client already exists", "client": result}
+			clients = Client.query.all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}
+		result = clients_schema.dump(clients)
+		return {"message": "All clients, include deleted", "client": result}
 	else:
-		return {"message": "GET method is not implemented"}, 405
+		try:
+			clients = Client.query.filter_by(was_deleted=False).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}
+		result = clients_schema.dump(clients)
+		return {"message": "All clients, exclude deleted", "client": result}
+
+
+@app.route('/api/v1/client/<int:pk>')
+def get_client(pk):
+	try:
+		clients = Client.query.filter_by(id=pk).all()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}
+	result = client_schema.dump(clients)
+	return {"message": "Requested client", "client": result}
+
+
+@app.route('/api/v1/client/', methods=['post'])
+def create_client():
+	json_data = request.get_json()
+	if not json_data:
+		return {"message": "No input data provided"}, 400
+	# Validate and deserialize input
+	try:
+		data = client_schema.load(json_data)
+	except ValidationError as err:
+		return err.messages, 422
+	client = Client.query.filter_by(mobile_number=data['mobile_number']).first()
+	if client is None:
+		# Create a new client
+		client = Client(**data)
+		db.session.add(client)
+		db.session.commit()
+		result = client_schema.dump(client)
+		return {"message": "Created new client", "client": result}
+	else:
+		# return existed client
+		result = client_schema.dump(client)
+		return {"message": "Client already exists", "client": result}
+
+
 
 
 if __name__ == "__main__":
