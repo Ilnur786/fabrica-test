@@ -29,6 +29,7 @@ class DistributionSchema(BaseSchema):
 	text = RequiredStr()
 	client_filter = RequiredStr
 	end_date = RequiredDateTime(validate=validate_datetime)
+	was_deleted = fields.Bool()
 
 
 class ClientSchema(BaseSchema):
@@ -37,6 +38,7 @@ class ClientSchema(BaseSchema):
 	mobile_operator_code = fields.Str()  # mobile_operator_code isn't required cause, that is just three number after country code
 	tag = RequiredStr()
 	timezone = fields.Str()
+	was_deleted = fields.Bool()
 
 	@validates_schema
 	def validate_mobile_number(self, data, **kwargs):
