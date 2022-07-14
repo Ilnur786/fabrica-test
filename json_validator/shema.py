@@ -12,7 +12,7 @@ RequiredDateTime = partial(fields.DateTime, required=True)
 
 
 def validate_datetime(dt):
-	datetime_format = '%Y-%m-%d %H:%M:%S'
+	datetime_format = '%Y-%m-%d %H:%M'
 	dt = datetime.strptime(dt, datetime_format)
 	if dt < datetime.now():
 		raise ValidationError('datetime cannot be in the past')
@@ -20,16 +20,20 @@ def validate_datetime(dt):
 
 class BaseSchema(Schema):
 	class Meta:
-		datetimeformat = '%Y-%m-%d %H:%M:%S'
+		datetimeformat = '%Y-%m-%d %H:%M'
 
 
 class DistributionSchema(BaseSchema):
 	id = fields.Int(dump_only=True)
 	start_date = RequiredDateTime(validate=validate_datetime)
 	text = RequiredStr()
-	client_filter = RequiredStr
+	client_filter = RequiredStr()
 	end_date = RequiredDateTime(validate=validate_datetime)
 	was_deleted = fields.Bool()
+
+	# @pre_load
+	# def make_required_dt_format(self, data, **kwargs):
+	# 	data['start_date'] = data['start_date'].strftime()
 
 
 class ClientSchema(BaseSchema):
