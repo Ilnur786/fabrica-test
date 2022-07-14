@@ -5,6 +5,10 @@ from envparse import env
 from datetime import datetime, timedelta
 from json_validator.shema import DistributionSchema, ClientSchema, MessageSchema
 from marshmallow import ValidationError
+from typing import Union, Dict, Iterable
+from distutils.util import strtobool
+from functools import wraps, partial
+from werkzeug.datastructures import ImmutableMultiDict
 import pytz
 import secrets
 import json
@@ -37,9 +41,10 @@ clients_schema = ClientSchema(many=True)
 message_schema = MessageSchema()
 messages_schema = MessageSchema(many=True)
 
-datetime_format = '%Y-%m-%d %H:%M:%S'
+datetime_format = '%Y-%m-%d %H:%M'
 
 
+# ORM MODELS SECTION
 # need answer: how to move db models into another module?
 class Distribution(db.Model):
 	__tablename__ = 'distributions'
@@ -48,17 +53,17 @@ class Distribution(db.Model):
 	# to receive time in that timezone: datetime.now(tz=pytz.timezone(tzlocal.get_localzone_name()))
 	# maybe in the future it will require convert time into client tz
 	# NOW it need declaration of given time format, in the API and convert str date into datetime object (strptime)
-	distr_start_date = db.Column(db.DateTime, default=datetime.now(), comment='date when distribution will be started')
-	distr_text = db.Column(db.String, comment='message text')
+	start_date = db.Column(db.DateTime, default=datetime.now(), comment='date when distribution will be started')
+	text = db.Column(db.String, comment='message text')
 	client_filter = db.Column(db.String, nullable=True, comment='get some clients with filtering them by mobile operator code, tag or etc.')
-	distr_end_date = db.Column(db.DateTime, comment='date when distribution will be ended')
+	end_date = db.Column(db.DateTime, comment='date when distribution will be ended')
 	was_deleted = db.Column(db.Boolean, default=False, comment='Shows if this row has been removed')
 	message = db.relationship("Message", backref="distributions", lazy=True, uselist=False)
 
 	def __repr__(self):
-		return f'<Distribution: id: {self.id}, start_date: {self.distr_start_date.strftime(datetime_format)}, ' \
-			   f'text: "{self.distr_text}", client_filter: "{self.client_filter}", ' \
-			   f'end_date: {self.distr_end_date.strftime(datetime_format)}, was_deleted: {self.was_deleted}>'
+		return f'<Distribution: id: {self.id}, start_date: {self.start_date.strftime(datetime_format)}, ' \
+			   f'text: "{self.text}", client_filter: "{self.client_filter}", ' \
+			   f'end_date: {self.end_date.strftime(datetime_format)}, was_deleted: {self.was_deleted}>'
 
 
 class Client(db.Model):
@@ -98,7 +103,9 @@ class Message(db.Model):
 			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
 
 
-def dynamic_update(objects, attrs):
+# USEFUL FUNCTIONS AND DECORATORS SECTION
+
+def dynamic_update(objects: Iterable[Union[Distribution, Client, Message]], attrs: Dict) -> Iterable[Union[Distribution, Client, Message]]:
 	for obj in objects:
 		for k, v in attrs.items():
 			if hasattr(obj, k):
@@ -107,94 +114,141 @@ def dynamic_update(objects, attrs):
 	return objects
 
 
+def convert_str_in_datetime(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		data = request.get_json()
+		if data.get('start_date'):
+			data['start_date'] = datetime.strptime(data['start_date'], datetime_format)
+		if data.get('end_date'):
+			data['end_date'] = datetime.strptime(data['end_date'], datetime_format)
+		http_args = request.args.to_dict()
+		if http_args.get('start_date'):
+			http_args['start_date'] = datetime.strptime(http_args['start_date'], datetime_format)
+		if http_args.get('end_date'):
+			http_args['end_date'] = datetime.strptime(http_args['end_date'], datetime_format)
+		request.args = ImmutableMultiDict(http_args)
+		return func(*args, **kwargs)
+	return wrapper
+
+
+def convert_str_in_bool(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		data = request.get_json()
+		if data.get('was_deleted'):
+			data['was_deleted'] = bool(strtobool(data['was_deleted']))
+		http_args = request.args.to_dict()
+		if http_args.get('was_deleted'):
+			http_args['was_deleted'] = bool(strtobool(http_args['was_deleted']))
+		request.args = ImmutableMultiDict(http_args)
+		return func(*args, **kwargs)
+	return wrapper
+
+
+def args_provided_validator(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		request_args = request.args
+		if not request_args:
+			return {"message": "No filter arguments provided (GET args)"}, 400
+		return func(*args, **kwargs)
+	return wrapper
+
+
+def data_provided_validator(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		data = request.get_json()
+		if not data:
+			return {"message": "No input data provided (POST variables)"}, 400
+		return func(*args, **kwargs)
+	return wrapper
+
+
+# CLIENT ROUTES SECTION
+
 @app.route('/api/v1/client/delete', methods=['get'])
+@convert_str_in_bool
+@args_provided_validator
 def delete_clients():
-	args = request.args
-	if not args:
-		return {"message": "No filter arguments provided"}, 400
+	http_args = request.args
 	try:
-		Client.query.filter_by(**args).update(dict(was_deleted=True))
+		clients = Client.query.filter_by(**http_args).all()
 	except InvalidRequestError as err:
 		return {"messages": err.args[0]}
-	clients = Client.query.filter_by(**args).all()
-	db.session.commit()
-	result = clients_schema.dump(clients)
+	deleted_clients = dynamic_update(clients, dict(was_deleted=True))
+	result = clients_schema.dump(deleted_clients)
 	return {"message": "Successful delete", "clients": result}
 
 
 @app.route('/api/v1/client/delete/<int:pk>')
 def delete_client_by_pk(pk):
 	try:
-		Client.query.filter_by(id=pk).update(dict(was_deleted=True))
+		client = Client.query.filter_by(id=pk).first()
 	except InvalidRequestError as err:
 		return {"messages": err.args[0]}
-	client = Client.query.filter_by(id=pk).first()
 	if not client:
 		return {"message": "No one client with given id"}
-	result = client_schema.dump(client)
-	db.session.commit()
+	updated_client = dynamic_update((client,), dict(was_deleted=True))[0]
+	result = client_schema.dump(updated_client)
 	return {"message": "Successful delete", "client": result}
 
 
-@app.route('/api/v1/client/update', methods=['get', 'post'])
+@app.route('/api/v1/client/update/', methods=['get', 'post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@args_provided_validator
+@data_provided_validator
 def update_clients_attributes():
 	if request.method == 'POST':
-		args = dict(request.args)
+		http_args = request.args.to_dict()
 		json_data = request.get_json()
-		if args.get('was_deleted'):
-			args['was_deleted'] = False if args['was_deleted'].lower() == 'false' else True
-		if json_data.get('was_deleted'):
-			json_data['was_deleted'] = False if json_data['was_deleted'].lower() == 'false' else True
 		try:
 			# result = db.session.query(User.money).with_for_update().filter_by(id=userid).first()
-			# 1
-			# nums = Client.query.filter_by(**args).with_for_update(of=Client).update(json_data)
-			# clients = Client.query.filter_by(**args).all()
-			# 2
-			clients = Client.query.filter_by(**args).all()
-			updated_clients = dynamic_update(clients, json_data)
+			clients = Client.query.filter_by(**http_args).all()
 		except InvalidRequestError as err:
 			return {"messages": err.args[0]}
-		db.session.commit()
+		updated_clients = dynamic_update(clients, json_data)
 		result = clients_schema.dump(updated_clients, many=True)
-		return {"message": "Successful update", "client": result}
+		return {"message": "Successful update", "clients": result}
 	else:
 		return {"message": "GET method is not implemented"}, 405
 
 
 @app.route('/api/v1/client/update/<int:pk>', methods=['get', 'post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@data_provided_validator
 def update_client_attributes(pk):
 	if request.method == 'POST':
 		json_data = request.get_json()
-		if json_data.get('was_deleted'):
-			json_data['was_deleted'] = False if json_data['was_deleted'].lower() == 'false' else True
 		try:
-			Client.query.filter_by(id=pk).update(json_data)
 			client = Client.query.filter_by(id=pk).first()
 		except InvalidRequestError as err:
-			return {"messages": err.args[0]}
-		db.session.commit()
-		result = client_schema.dump(client)
+			return {"messages": err.args[0]}, 422
+		updated_client = dynamic_update((client,), json_data)[0]
+		result = client_schema.dump(updated_client)
 		return {"message": "Successful update", "client": result}
 	else:
 		return {"message": "GET method is not implemented"}, 405
 
 
-@app.route('/api/v1/client', methods=['get'])
+@app.route('/api/v1/client/', methods=['get'])
 def get_clients():
-	args = request.args
-	if args.get('all'):
+	http_args = request.args
+	if http_args.get('all'):
 		try:
 			clients = Client.query.all()
 		except InvalidRequestError as err:
-			return {"messages": err.args[0]}
+			return {"messages": err.args[0]}, 422
 		result = clients_schema.dump(clients)
 		return {"message": "All clients, include deleted", "client": result}
 	else:
 		try:
 			clients = Client.query.filter_by(was_deleted=False).all()
 		except InvalidRequestError as err:
-			return {"messages": err.args[0]}
+			return {"messages": err.args[0]}, 422
 		result = clients_schema.dump(clients)
 		return {"message": "All clients, exclude deleted", "client": result}
 
@@ -202,18 +256,19 @@ def get_clients():
 @app.route('/api/v1/client/<int:pk>')
 def get_client(pk):
 	try:
-		clients = Client.query.filter_by(id=pk).all()
+		client = Client.query.filter_by(id=pk).first()
 	except InvalidRequestError as err:
-		return {"messages": err.args[0]}
-	result = client_schema.dump(clients)
+		return {"messages": err.args[0]}, 422
+	result = client_schema.dump(client)
 	return {"message": "Requested client", "client": result}
 
 
 @app.route('/api/v1/client/', methods=['post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@data_provided_validator
 def create_client():
 	json_data = request.get_json()
-	if not json_data:
-		return {"message": "No input data provided"}, 400
 	# Validate and deserialize input
 	try:
 		data = client_schema.load(json_data)
@@ -233,16 +288,130 @@ def create_client():
 		return {"message": "Client already exists", "client": result}
 
 
+# DISTRIBUTION ROUTES SECTION
+
+@app.route('/api/v1/distribution/delete', methods=['get'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@args_provided_validator
+def delete_distributions():
+	http_args = request.args
+	try:
+		distrs = Distribution.query.filter_by(**http_args).all()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}
+	updated_distrs = dynamic_update(distrs, dict(was_deleted=True))
+	result = distributions_schema.dump(updated_distrs)
+	return {"message": "Successful delete", "distributions": result}
+
+
+@app.route('/api/v1/distribution/delete/<int:pk>')
+def delete_distribution_by_pk(pk):
+	try:
+		distr = Distribution.query.filter_by(id=pk).first()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}
+	if not distr:
+		return {"message": "No one distribution doesn't match with given id"}
+	updated_distr = dynamic_update((distr,), dict(was_deleted=True))[0]
+	result = distribution_schema.dump(updated_distr)
+	return {"message": "Successful delete", "distribution": result}
+
+
+@app.route('/api/v1/distribution/update/', methods=['get', 'post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@args_provided_validator
+@data_provided_validator
+def update_distributions_attributes():
+	if request.method == 'POST':
+		http_args = request.args.to_dict()
+		json_data = request.get_json()
+		try:
+			distrs = Distribution.query.filter_by(**http_args).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}
+		updated_distrs = dynamic_update(distrs, json_data)
+		result = distributions_schema.dump(updated_distrs, many=True)
+		return {"message": "Successful update", "distribution": result}
+	else:
+		return {"message": "GET method is not implemented"}, 405
+
+
+@app.route('/api/v1/distribution/update/<int:pk>', methods=['get', 'post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@data_provided_validator
+def update_distribution_attributes(pk):
+	if request.method == 'POST':
+		json_data = request.get_json()
+		try:
+			distr = Distribution.query.filter_by(id=pk).first()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		updated_distr = dynamic_update((distr,), json_data)[0]
+		result = distribution_schema.dump(updated_distr)
+		return {"message": "Successful update", "distribution": result}
+	else:
+		return {"message": "GET method is not implemented"}, 405
+
+
+@app.route('/api/v1/distribution/', methods=['post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@data_provided_validator
+def create_distribution():
+	json_data = request.get_json()
+	# Validate and deserialize input
+	try:
+		data = distribution_schema.load(json_data)
+	except ValidationError as err:
+		return err.messages, 422
+	# Create a new distribution
+	distr = Distribution(**data)
+	db.session.add(distr)
+	db.session.commit()
+	result = distribution_schema.dump(distr)
+	return {"message": "Created new distribution", "distribution": result}
+
+
+@app.route('/api/v1/distribution/', methods=['get'])
+def get_distributions():
+	http_args = request.args
+	if http_args.get('all'):
+		try:
+			distrs = Distribution.query.all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		result = distributions_schema.dump(distrs)
+		return {"message": "All distributions, include deleted", "distributions": result}
+	else:
+		try:
+			distrs = Distribution.query.filter_by(was_deleted=False).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		result = distributions_schema.dump(distrs)
+		return {"message": "All distributions, exclude deleted", "distributions": result}
+
+
+@app.route('/api/v1/distribution/<int:pk>')
+def get_distribution(pk):
+	try:
+		distr = Distribution.query.filter_by(id=pk).first()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}, 422
+	result = distribution_schema.dump(distr)
+	return {"message": "Requested distribution", "distribution": result}
 
 
 if __name__ == "__main__":
 	db.create_all()  # it should be here
 
-	# d = Distribution(distr_start_date=datetime.now(), distr_text='hello', client_filter='mts',
-	# 				 distr_end_date=datetime.now() + timedelta(days=1))
-	# c = Client(mobile_number="79177456985", mobile_operator_code="917", tag='tag', timezone='Europe/Moscow')
+	# d = Distribution(start_date=datetime.now(), text='hello', client_filter='mts',
+	# 				 end_date=datetime.now() + timedelta(days=1))
+	# c = Client(mobile_number="79177456985", mobile_operator_code="917", tag='mts', timezone='Europe/Moscow')
 	# db.session.add_all([d, c])
-	# m = Message(send_date=datetime.now(), distribution_id=1, client_id=2)
+	# m = Message(send_date=datetime.now(), distribution_id=2, client_id=3)
 	# db.session.add(m)
 	# db.session.commit()
 	# print("A distr entity was added to the table")
