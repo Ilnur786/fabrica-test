@@ -1,10 +1,9 @@
-from marshmallow import Schema, fields, ValidationError, pre_load, validates_schema
+from marshmallow import Schema, fields, ValidationError, pre_load, post_dump, pre_dump, validates_schema
 from marshmallow.validate import Length
 from functools import partial
 from datetime import datetime
 import tzlocal
 
-mobile_number_len_validator = Length(min=11, max=15)
 
 RequiredStr = partial(fields.Str, required=True)
 RequiredInt = partial(fields.Int, required=True)
@@ -12,8 +11,6 @@ RequiredDateTime = partial(fields.DateTime, required=True)
 
 
 def validate_datetime(dt):
-	datetime_format = '%Y-%m-%d %H:%M'
-	dt = datetime.strptime(dt, datetime_format)
 	if dt < datetime.now():
 		raise ValidationError('datetime cannot be in the past')
 
@@ -23,17 +20,37 @@ class BaseSchema(Schema):
 		datetimeformat = '%Y-%m-%d %H:%M'
 
 
+class MessageSchema(BaseSchema):
+	id = fields.Int(dump_only=True)
+	# maybe send_date, distribution_id, client_id field is redundant? cause send_date will be sat when message will send
+	# NO, it doesn't. Cause that fields should be in schema for execute dumping. I did them not required
+	send_date = fields.DateTime()
+	sending_status = fields.Bool()
+	distribution_id = fields.Int()
+	client_id = fields.Int()
+
+	@pre_load
+	def set_data(self, data, **kwargs):
+		data['send_date'] = None
+		data['sending_status'] = False
+		return data
+
+
 class DistributionSchema(BaseSchema):
 	id = fields.Int(dump_only=True)
-	start_date = RequiredDateTime(validate=validate_datetime)
+	start_date = RequiredDateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
 	text = RequiredStr()
 	client_filter = RequiredStr()
-	end_date = RequiredDateTime(validate=validate_datetime)
+	end_date = RequiredDateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
 	was_deleted = fields.Bool()
+	sent = fields.Nested(MessageSchema, many=True, dump_only=True)
+	not_sent = fields.Nested(MessageSchema, many=True, dump_only=True)
 
-	# @pre_load
-	# def make_required_dt_format(self, data, **kwargs):
-	# 	data['start_date'] = data['start_date'].strftime()
+	# @post_dump
+	# def set_messages_field(self, data, many, **kwargs):
+	# 	if many:
+	# 		data['sent'] = str(len(data['sent']))
+	# 		data['not_sent'] = str(len(data['not_sent']))
 
 
 class ClientSchema(BaseSchema):
@@ -77,11 +94,3 @@ class ClientSchema(BaseSchema):
 			if not data.get('mobile_operator_code'):
 				data['mobile_operator_code'] = data['mobile_number'][1:4]
 		return data
-
-
-class MessageSchema(BaseSchema):
-	id = fields.Int(dump_only=True)
-	send_date = RequiredDateTime(validate=validate_datetime)
-	# status isn't required field at request, cause it info field, which fill automatic
-	dist_id = RequiredInt()
-	client_id = RequiredInt()
