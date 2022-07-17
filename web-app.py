@@ -1,9 +1,10 @@
 from flask import Flask, request, g, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect
 from sqlalchemy.exc import InvalidRequestError, NoResultFound
 from envparse import env
 from datetime import datetime, timedelta
-from json_validator.shema import DistributionSchema, ClientSchema, MessageSchema
+from json_validator.schema import DistributionSchema, ClientSchema, MessageSchema
 from marshmallow import ValidationError
 from typing import Union, Dict, Iterable
 from distutils.util import strtobool
@@ -30,16 +31,19 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # There, instead SQLAlchemy Base declarative model is using flask_sqlalchemy.SQLAlchemy.Model class which is build on original SQLAlchemy.Base class (declarative_base()).
 # It has some features like working with sessions and other.
-# More about that was written here: https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
+# More about that was written here: https://stackoverflow.com/questions/22698478/what-is-the-difference-between-the-declarative-base-and-db-model
+# or https://flask-sqlalchemy.palletsprojects.com/en/2.x/
 # The GENERAL differences between libs are shown here: https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/
 db = SQLAlchemy(app)
 
-distribution_schema = DistributionSchema()
-distributions_schema = DistributionSchema(many=True)
+distribution_schema = DistributionSchema(exclude=('sent', 'not_sent'))
+distributions_schema = DistributionSchema(exclude=('sent', 'not_sent'), many=True)
 client_schema = ClientSchema()
 clients_schema = ClientSchema(many=True)
 message_schema = MessageSchema()
 messages_schema = MessageSchema(many=True)
+distribution_statistic_schema = DistributionSchema()
+distributions_statistic_schema = DistributionSchema(many=True)
 
 datetime_format = '%Y-%m-%d %H:%M'
 
@@ -73,8 +77,8 @@ class Client(db.Model):
 	mobile_number = db.Column(db.String(15), comment='client telephone number')  # need constrainting length before added into db
 	mobile_operator_code = db.Column(db.String(5), comment='7XXX9354758 - three number after country code')  # need constrainting length before added into db
 	tag = db.Column(db.String, comment='free fillable field. Can be nullable')
-	# after API will be ready, user can give tz in "Europe/Moscow" like format. Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-	# or it can look like datetime.timezone('MSC') with offset from UTC-time.
+	# after API will be ready, user can give tz in "Europe/Moscow" like format.
+	# Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 	timezone = db.Column(db.String(30), comment='it will be look like "Europe/Moscow"')
 	was_deleted = db.Column(db.Boolean, default=False, comment='Shows if this row has been removed')
 	message = db.relationship("Message", backref="clients", lazy=True)
@@ -89,21 +93,24 @@ class Message(db.Model):
 	__tablename__ = 'messages'
 
 	id = db.Column(db.Integer, primary_key=True)
-	send_date = db.Column(db.DateTime, default=datetime.now(), comment='date when message was send')
+	send_date = db.Column(db.DateTime, nullable=True, comment='date when message was send. If NULL, it mean that message was not send yet')
 	sending_status = db.Column(db.Boolean, default=False)
-	distribution_id = db.Column(db.Integer, db.ForeignKey('distributions.id'), comment='distribution id, where message was sended')
+	distribution_id = db.Column(db.Integer, db.ForeignKey('distributions.id'), comment='distribution id, where message was sent')
 	# distribution = db.relationship("Distribution", backref="message")
-	client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), comment='client id whose was send message')
+	client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True, comment='client id whose was send message')
 	# client = db.relationship('Client', backref='messages', lazy=True)
-	was_deleted = db.Column(db.Boolean, default=False, comment='Shows if this row has been removed')
+	# was_deleted = db.Column(db.Boolean, default=False, comment='shows if this row has been removed')
 
 	def __repr__(self):
-		return f'<Message: id: {self.id}, send_date: {self.send_date.strftime(datetime_format)}, ' \
+		return f'<Message: id: {self.id}, send_date: {self.send_date.strftime(datetime_format) if self.send_date else None}, ' \
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, ' \
 			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
 
 
 # USEFUL FUNCTIONS AND DECORATORS SECTION
+def object_as_dict(obj):
+	return {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
+
 
 def dynamic_update(objects: Iterable[Union[Distribution, Client, Message]], attrs: Dict) -> Iterable[Union[Distribution, Client, Message]]:
 	for obj in objects:
@@ -164,6 +171,112 @@ def data_provided_validator(func):
 			return {"message": "No input data provided (POST variables)"}, 400
 		return func(*args, **kwargs)
 	return wrapper
+
+
+# STATISTIC ROUTES SECTION
+
+@app.route('/api/v1/distribution/statistic/<int:pk>')
+def get_distribution_statistic_by_pk(pk):
+	try:
+		distr = Distribution.query.filter_by(id=pk).first()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}
+	sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=True).all()
+	not_sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=False).all()
+	# WORKABLE SOLUTION VIA DICT
+	kwargs_dict = object_as_dict(distr)
+	kwargs_dict.update(sent=sent_msgs, not_sent=not_sent_msgs)
+	result = distribution_statistic_schema.dump(kwargs_dict)
+	# UNWORKABLE SOLUTION
+	# result = distribution_schema.dump(distr, dict(sent=sent_msgs, not_sent=not_sent_msgs))
+	return {"message": "Distributions statistic", "statistic": result}
+
+
+@app.route('/api/v1/distribution/statistic/all', methods=['get', 'post'])
+def get_all_distributions_statistic():
+	if request.method == 'GET':
+		try:
+			distrs = Distribution.query.all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}
+		temp = []
+		for distr in distrs:
+			sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=True).all()
+			not_sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=False).all()
+			kwargs_dict = object_as_dict(distr)
+			kwargs_dict.update(sent=sent_msgs, not_sent=not_sent_msgs)
+			temp.append(kwargs_dict)
+		result = distributions_statistic_schema.dump(temp)
+		for item in result:
+			item['sent'] = str(len(item['sent']))
+			item['not_sent'] = str(len(item['not_sent']))
+		return {"message": "All distributions statistic, include deleted", "distributions": result}
+	else:
+		return {"message": "POST method is not implemented"}, 405
+
+
+@app.route('/api/v1/distribution/statistic/', methods=['get', 'post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+def get_distributions_statistic():
+	if request.method == 'GET':
+		http_args = request.args
+		if not http_args:
+			try:
+				distrs = Distribution.query.filter_by(was_deleted=False).all()
+			except InvalidRequestError as err:
+				return {"messages": err.args[0]}
+			temp = []
+			for distr in distrs:
+				sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=True).all()
+				not_sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=False).all()
+				kwargs_dict = object_as_dict(distr)
+				kwargs_dict.update(sent=sent_msgs, not_sent=not_sent_msgs)
+				temp.append(kwargs_dict)
+			result = distributions_statistic_schema.dump(temp)
+			for item in result:
+				item['sent'] = str(len(item['sent']))
+				item['not_sent'] = str(len(item['not_sent']))
+			return {"message": "All distributions statistic, exclude deleted", "distributions": result}
+		else:
+			try:
+				distrs = Distribution.query.filter_by(**http_args).all()
+			except InvalidRequestError as err:
+				return {"messages": err.args[0]}
+			temp = []
+			for distr in distrs:
+				sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=True).all()
+				not_sent_msgs = Message.query.filter_by(distribution_id=distr.id, sending_status=False).all()
+				kwargs_dict = object_as_dict(distr)
+				kwargs_dict.update(sent=sent_msgs, not_sent=not_sent_msgs)
+				temp.append(kwargs_dict)
+			result = distributions_schema.dump(temp)
+			return {"message": "Matched distributions statistic", "distributions": result}
+	else:
+		return {"message": "POST method is not implemented"}, 405
+
+
+# MESSAGES ROUTES SECTION
+
+@app.route('/api/v1/message/', methods=['get'])
+def get_all_messages():
+	messages = Message.query.all()
+	result = messages_schema.dump(messages)
+	return {"message": "All messages", "messages": result}
+
+
+@app.route('/api/v1/message/all', methods=['get'])
+def get_all_messages_another_route():
+	messages = Message.query.all()
+	result = messages_schema.dump(messages)
+	return {"message": "All messages", "messages": result}
+
+
+@app.route('/api/v1/message/<int:pk>')
+def get_messages_include_deleted(pk):
+	messages = Message.query.filter_by(id=pk).all()
+	result = messages_schema.dump(messages)
+	return {"message": "All messages, include deleted", "messages": result}
 
 
 # CLIENT ROUTES SECTION
@@ -235,9 +348,29 @@ def update_client_attributes(pk):
 
 
 @app.route('/api/v1/client/', methods=['get'])
+@convert_str_in_bool
+@convert_str_in_datetime
 def get_clients():
 	http_args = request.args
-	if http_args.get('all'):
+	if not http_args:
+		try:
+			clients = Client.query.filter_by(was_deleted=False).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		result = clients_schema.dump(clients)
+		return {"message": "All clients, exclude deleted", "client": result}
+	else:
+		try:
+			clients = Client.query.filter_by(**http_args, was_deleted=False).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		result = clients_schema.dump(clients)
+		return {"message": "Matched clients", "client": result}
+
+
+@app.route('/api/v1/client/all', methods=['get'])
+def get_clients_include_deleted():
+	if request.method == 'GET':
 		try:
 			clients = Client.query.all()
 		except InvalidRequestError as err:
@@ -245,16 +378,10 @@ def get_clients():
 		result = clients_schema.dump(clients)
 		return {"message": "All clients, include deleted", "client": result}
 	else:
-		try:
-			clients = Client.query.filter_by(was_deleted=False).all()
-		except InvalidRequestError as err:
-			return {"messages": err.args[0]}, 422
-		result = clients_schema.dump(clients)
-		return {"message": "All clients, exclude deleted", "client": result}
-
+		return {"message": "POST method is not implemented"}, 405
 
 @app.route('/api/v1/client/<int:pk>')
-def get_client(pk):
+def get_client_by_pk(pk):
 	try:
 		client = Client.query.filter_by(id=pk).first()
 	except InvalidRequestError as err:
@@ -357,8 +484,8 @@ def update_distribution_attributes(pk):
 
 
 @app.route('/api/v1/distribution/', methods=['post'])
-@convert_str_in_bool
-@convert_str_in_datetime
+# @convert_str_in_bool
+# @convert_str_in_datetime
 @data_provided_validator
 def create_distribution():
 	json_data = request.get_json()
@@ -371,6 +498,9 @@ def create_distribution():
 	distr = Distribution(**data)
 	db.session.add(distr)
 	db.session.commit()
+	msg = Message(distribution_id=distr.id)
+	db.session.add(msg)
+	db.session.commit()
 	result = distribution_schema.dump(distr)
 	return {"message": "Created new distribution", "distribution": result}
 
@@ -378,21 +508,29 @@ def create_distribution():
 @app.route('/api/v1/distribution/', methods=['get'])
 def get_distributions():
 	http_args = request.args
-	if http_args.get('all'):
-		try:
-			distrs = Distribution.query.all()
-		except InvalidRequestError as err:
-			return {"messages": err.args[0]}, 422
-		result = distributions_schema.dump(distrs)
-		return {"message": "All distributions, include deleted", "distributions": result}
-	else:
+	if not http_args:
 		try:
 			distrs = Distribution.query.filter_by(was_deleted=False).all()
 		except InvalidRequestError as err:
 			return {"messages": err.args[0]}, 422
 		result = distributions_schema.dump(distrs)
 		return {"message": "All distributions, exclude deleted", "distributions": result}
+	else:
+		try:
+			distrs = Distribution.query.filter_by(**http_args, was_deleted=False).all()
+		except InvalidRequestError as err:
+			return {"messages": err.args[0]}, 422
+		result = distributions_schema.dump(distrs)
+		return {"message": "Matched distributions", "distributions": result}
 
+@app.route('/api/v1/distribution/all', methods=['get'])
+def get_all_distributions_include_deleted():
+	try:
+		distrs = Distribution.query.all()
+	except InvalidRequestError as err:
+		return {"messages": err.args[0]}, 422
+	result = distributions_schema.dump(distrs)
+	return {"message": "All distributions, include deleted", "distributions": result}
 
 @app.route('/api/v1/distribution/<int:pk>')
 def get_distribution(pk):
@@ -411,14 +549,17 @@ if __name__ == "__main__":
 	# 				 end_date=datetime.now() + timedelta(days=1))
 	# c = Client(mobile_number="79177456985", mobile_operator_code="917", tag='mts', timezone='Europe/Moscow')
 	# db.session.add_all([d, c])
-	# m = Message(send_date=datetime.now(), distribution_id=2, client_id=3)
+	# m = Message(distribution_id=4)
 	# db.session.add(m)
 	# db.session.commit()
 	# print("A distr entity was added to the table")
-	#
-	# # # read the data
-	# # row = Distribution.query.filter_by(id="1").first()
-	# # print(row)
+
+	# # read the data
+	# d1 = Distribution.query.filter_by(id=1).first()
+	# print(d1)
+	# m1 = Message.query.filter_by(distribution_id=d1.id).first()
+	# print(m1)
+	# print('=' * 150)
 	# rows = Distribution.query.all()
 	# print(*rows, sep='\n')
 	# print('=' * 150)
