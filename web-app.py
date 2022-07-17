@@ -276,7 +276,7 @@ def get_all_messages_another_route():
 def get_messages_include_deleted(pk):
 	messages = Message.query.filter_by(id=pk).all()
 	result = messages_schema.dump(messages)
-	return {"message": "All messages, include deleted", "messages": result}
+	return {"message": "Matched message", "messages": result}
 
 
 # CLIENT ROUTES SECTION
@@ -379,6 +379,7 @@ def get_clients_include_deleted():
 		return {"message": "All clients, include deleted", "client": result}
 	else:
 		return {"message": "POST method is not implemented"}, 405
+
 
 @app.route('/api/v1/client/<int:pk>')
 def get_client_by_pk(pk):
@@ -483,9 +484,8 @@ def update_distribution_attributes(pk):
 		return {"message": "GET method is not implemented"}, 405
 
 
+# doesn't require such like convert_... decorators, cause ma expects strings
 @app.route('/api/v1/distribution/', methods=['post'])
-# @convert_str_in_bool
-# @convert_str_in_datetime
 @data_provided_validator
 def create_distribution():
 	json_data = request.get_json()
@@ -523,6 +523,7 @@ def get_distributions():
 		result = distributions_schema.dump(distrs)
 		return {"message": "Matched distributions", "distributions": result}
 
+
 @app.route('/api/v1/distribution/all', methods=['get'])
 def get_all_distributions_include_deleted():
 	try:
@@ -531,6 +532,7 @@ def get_all_distributions_include_deleted():
 		return {"messages": err.args[0]}, 422
 	result = distributions_schema.dump(distrs)
 	return {"message": "All distributions, include deleted", "distributions": result}
+
 
 @app.route('/api/v1/distribution/<int:pk>')
 def get_distribution(pk):
