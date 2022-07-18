@@ -56,7 +56,7 @@ class Distribution(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	# to receive time in that timezone: datetime.now(tz=pytz.timezone(tzlocal.get_localzone_name()))
 	# maybe in the future it will require convert time into client tz
-	# NOW it need declaration of given time format, in the API and convert str date into datetime object (strptime)
+	# NOW it need declaration of given time format in the API docs and convert str date into datetime object (strptime)
 	start_date = db.Column(db.DateTime, default=datetime.now(), comment='date when distribution will be started')
 	text = db.Column(db.String, comment='message text')
 	client_filter = db.Column(db.String, nullable=True, comment='get some clients with filtering them by mobile operator code, tag or etc.')
@@ -102,7 +102,8 @@ class Message(db.Model):
 	# was_deleted = db.Column(db.Boolean, default=False, comment='shows if this row has been removed')
 
 	def __repr__(self):
-		return f'<Message: id: {self.id}, send_date: {self.send_date.strftime(datetime_format) if self.send_date else None}, ' \
+		return f'<Message: id: {self.id}, ' \
+			   f'send_date: {self.send_date.strftime(datetime_format) if self.send_date else None}, ' \
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, ' \
 			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
 
