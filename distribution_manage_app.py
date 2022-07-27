@@ -63,6 +63,7 @@ class Distribution(db.Model):
 	end_date = db.Column(db.DateTime, comment='date when distribution will be ended')
 	was_deleted = db.Column(db.Boolean, default=False, comment='Shows if this row has been removed')
 	message = db.relationship("Message", backref="distributions", lazy=True, uselist=False)
+	# uselist=False is declarate one-to-one relate
 
 	def __repr__(self):
 		return f'<Distribution: id: {self.id}, start_date: {self.start_date.strftime(datetime_format)}, ' \
