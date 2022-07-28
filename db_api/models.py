@@ -41,12 +41,12 @@ class Distribution(Base, ModelsConfig):
 
 
 # association table for Clients-Messages (many-to-many) relationship
-association_table = Table(
-    "association",
-    Base.metadata,
-    Column("client_id", ForeignKey("client.id"), primary_key=True),
-    Column("message_id", ForeignKey("message.id"), primary_key=True),
-)
+# association_table = Table(
+#     "association",
+#     Base.metadata,
+#     Column("client_id", ForeignKey("client.id"), primary_key=True),
+#     Column("message_id", ForeignKey("message.id"), primary_key=True),
+# )
 
 
 class Client(Base, ModelsConfig):
@@ -63,7 +63,7 @@ class Client(Base, ModelsConfig):
 	timezone = Column(String(30), comment='it will be look like "Europe/Moscow"')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
 	# message = relationship('Association', back_populates="client")
-	message = relationship('Message', secondary=association_table, back_populates="client")
+	message = relationship('Message', back_populates="client")
 
 	def __repr__(self):
 		return f'<Client: id: {self.id}, mobile_number: "{self.mobile_number}", ' \
@@ -75,25 +75,22 @@ class Message(Base, ModelsConfig):
 	__tablename__ = 'messages'
 
 	id = Column(Integer, primary_key=True)
-	send_date = Column(DateTime, nullable=True, default=datetime.now(),
-					   comment='date when message was send. If NULL, it mean that message was not send yet')
-	sending_status = Column(Boolean, default=True)
 	# one-to-many
 	# ForeignKey look to __tablename__.attribute
 	distribution_id = Column(Integer, ForeignKey('distributions.id'),
 							 comment='distribution id, where message was sended')
+	client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
 	distribution = relationship("Distribution", back_populates="message")
-	# many-to-many
-	# client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
 	# back_populates look to Client class "message" attribute, not to __tablename__
-	# client = relationship('Association', back_populates='message')
-	client = relationship('Association', secondary=association_table, back_populates='message')
+	client = relationship('Client', back_populates='message')
+	send_date = Column(DateTime, nullable=True, default=datetime.now(),
+					   comment='date when message was send. If NULL, it mean that message was not send yet')
+	sending_status = Column(Boolean, default=True)
 
 	def __repr__(self):
-		return f'<Message: id: {self.id}, ' \
+		return f'<Message: id: {self.id}, distribution.id: {self.distribution_id}, client.id: {self.client_id}, ' \
 			   f'send_date: {self.send_date.strftime(self.datetime_format) if self.send_date else None}, ' \
-			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, ' \
-			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
+			   f'sending_status: {self.sending_status}>'
 
 
 # ASSOCIATION OBJECT can be suitable if there required to hold another fields in associate. table, such as date or etc.
@@ -104,7 +101,7 @@ class Message(Base, ModelsConfig):
 	# a.child = Child()
 	# p.children.append(a)
 
-# many to many. multiple message can relate multiple clients
+# many to many association object. Distribution and Client can relate to multiple Messages.
 # docs here: https://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
 # class Association(Base, ModelsConfig):
 # 	__tablename__ = "association"
