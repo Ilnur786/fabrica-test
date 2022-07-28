@@ -29,7 +29,9 @@ class Distribution(Base, ModelsConfig):
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
 	message = relationship("Message", back_populates="distribution")
 
-	# uselist=False is declarate one-to-one relate
+	# common relationship is one-to-many. uselist=False is declarate one-to-one relate
+	# back_populates declarate back direction ralative:
+	# (e.g. parent-children is one-to-many, consequently, children-parent is many-to-one)
 
 	def __repr__(self):
 		return f'<Distribution: id: {self.id}, start_date: {self.start_date.strftime(self.datetime_format)}, ' \
@@ -69,11 +71,10 @@ class Message(Base):
 	distribution_id = Column(Integer, ForeignKey('distributions.id'),
 							 comment='distribution id, where message was sended')
 	distribution = relationship("Distribution", back_populates="message")
-	# one to many. to one message can relate multiple clients
+	# many to many. multiple message can relate multiple clients
 	client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
 	# back_populates look to "message" attribute of Client class, not to table name
 	client = relationship('Client', back_populates='message')
-
 
 	def __repr__(self):
 		return f'<Message: id: {self.id}, ' \
