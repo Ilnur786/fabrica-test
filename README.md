@@ -26,3 +26,6 @@
 - [ ] Написать документацию
 - [ ] Создать админ панель c помощью flask-admin
 - [ ] Обернуть в docker-compose
+
+Архитектура базы данных:
+![plot](assets/fabrique-database-schema.png)
