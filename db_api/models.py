@@ -4,7 +4,9 @@ from datetime import datetime
 import tzlocal
 import pytz
 from dataclasses import dataclass
-from .database import Base
+
+
+Base = declarative_base()
 
 
 @dataclass
@@ -25,7 +27,7 @@ class Distribution(Base, ModelsConfig):
 							  comment='get some clients with filtering them by mobile operator code, tag or etc.')
 	end_date = Column(DateTime, comment='date when distribution will be ended')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
-	message = relationship("Message", backref="distributions", lazy=True, uselist=False)
+	message = relationship("Message", back_populates="distribution")
 
 	# uselist=False is declarate one-to-one relate
 
@@ -48,7 +50,7 @@ class Client(Base, ModelsConfig):
 	# Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 	timezone = Column(String(30), comment='it will be look like "Europe/Moscow"')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
-	message = relationship("Message", backref="clients", lazy=True)
+	message = relationship("Message", back_populates="client", lazy=True)
 
 	def __repr__(self):
 		return f'<Client: id: {self.id}, mobile_number: "{self.mobile_number}", ' \
@@ -63,16 +65,21 @@ class Message(Base):
 	send_date = Column(DateTime, nullable=True, default=datetime.now(),
 					   comment='date when message was send. If NULL, it mean that message was not send yet')
 	sending_status = Column(Boolean, default=True)
-	# one to one
+	# one to many
 	distribution_id = Column(Integer, ForeignKey('distributions.id'),
 							 comment='distribution id, where message was sended')
 	distribution = relationship("Distribution", back_populates="message")
 	# one to many. to one message can relate multiple clients
 	client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
+	# back_populates look to "message" attribute of Client class, not to table name
 	client = relationship('Client', back_populates='message')
+
 
 	def __repr__(self):
 		return f'<Message: id: {self.id}, ' \
 			   f'send_date: {self.send_date.strftime(self.datetime_format) if self.send_date else None}, ' \
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, ' \
 			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
+
+
+__all__ = ["Distribution", "Client", "Message", "Base"]
