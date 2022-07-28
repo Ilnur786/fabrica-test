@@ -27,6 +27,7 @@ class Distribution(Base, ModelsConfig):
 							  comment='get some clients with filtering them by mobile operator code, tag or etc.')
 	end_date = Column(DateTime, comment='date when distribution will be ended')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
+	# back_populates look to Client class "message" attribute, not to __tablename__
 	message = relationship("Message", back_populates="distribution")
 
 	# common relationship is one-to-many. uselist=False is declarate one-to-one relate
@@ -37,6 +38,15 @@ class Distribution(Base, ModelsConfig):
 		return f'<Distribution: id: {self.id}, start_date: {self.start_date.strftime(self.datetime_format)}, ' \
 			   f'text: "{self.text}", client_filter: "{self.client_filter}", ' \
 			   f'end_date: {self.end_date.strftime(self.datetime_format)}, was_deleted: {self.was_deleted}>'
+
+
+# association table for Clients-Messages (many-to-many) relationship
+association_table = Table(
+    "association",
+    Base.metadata,
+    Column("client_id", ForeignKey("client.id"), primary_key=True),
+    Column("message_id", ForeignKey("message.id"), primary_key=True),
+)
 
 
 class Client(Base, ModelsConfig):
@@ -52,7 +62,8 @@ class Client(Base, ModelsConfig):
 	# Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 	timezone = Column(String(30), comment='it will be look like "Europe/Moscow"')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
-	message = relationship("Message", back_populates="client", lazy=True)
+	# message = relationship('Association', back_populates="client")
+	message = relationship('Message', secondary=association_table, back_populates="client")
 
 	def __repr__(self):
 		return f'<Client: id: {self.id}, mobile_number: "{self.mobile_number}", ' \
@@ -60,27 +71,50 @@ class Client(Base, ModelsConfig):
 			   f'was_deleted: {self.was_deleted}">'
 
 
-class Message(Base):
+class Message(Base, ModelsConfig):
 	__tablename__ = 'messages'
 
 	id = Column(Integer, primary_key=True)
 	send_date = Column(DateTime, nullable=True, default=datetime.now(),
 					   comment='date when message was send. If NULL, it mean that message was not send yet')
 	sending_status = Column(Boolean, default=True)
-	# one to many
+	# one-to-many
+	# ForeignKey look to __tablename__.attribute
 	distribution_id = Column(Integer, ForeignKey('distributions.id'),
 							 comment='distribution id, where message was sended')
 	distribution = relationship("Distribution", back_populates="message")
-	# many to many. multiple message can relate multiple clients
-	client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
-	# back_populates look to "message" attribute of Client class, not to table name
-	client = relationship('Client', back_populates='message')
+	# many-to-many
+	# client_id = Column(Integer, ForeignKey('clients.id'), comment='client id whose was send message')
+	# back_populates look to Client class "message" attribute, not to __tablename__
+	# client = relationship('Association', back_populates='message')
+	client = relationship('Association', secondary=association_table, back_populates='message')
 
 	def __repr__(self):
 		return f'<Message: id: {self.id}, ' \
 			   f'send_date: {self.send_date.strftime(self.datetime_format) if self.send_date else None}, ' \
 			   f'sending_status: {self.sending_status}, distribution.id: {self.distribution_id}, ' \
 			   f'client.id: {self.client_id}, was_deleted: {self.was_deleted}>'
+
+
+# ASSOCIATION OBJECT can be suitable if there required to hold another fields in associate. table, such as date or etc.
+# ON THE OTHER HAND, it required create objects through association object creation, that isn't comfortable:
+	# create parent, append a child via association
+	# p = Parent()
+	# a = Association(extra_data="some data")
+	# a.child = Child()
+	# p.children.append(a)
+
+# many to many. multiple message can relate multiple clients
+# docs here: https://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
+# class Association(Base, ModelsConfig):
+# 	__tablename__ = "association"
+#
+# 	# ForeignKey look to __tablename__.attribute
+# 	client_id = Column(ForeignKey("clients.id"), primary_key=True)
+# 	message_id = Column(ForeignKey("messages.id"), primary_key=True)
+# 	# back_populates look to Client class "message" attribute, not to __tablename__
+# 	client = relationship("Client", back_populates="messages")
+# 	message = relationship("Message", back_populates="clients")
 
 
 __all__ = ["Distribution", "Client", "Message", "Base"]
