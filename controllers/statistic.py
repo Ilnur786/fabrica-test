@@ -83,7 +83,7 @@ def get_distributions_statistic_exclude_deleted():
 			return {"message": "All distributions statistic, exclude deleted", "distributions": result}
 		else:
 			try:
-				distrs = app_statistic.session.query(Distribution).filter_by(**http_args).all()
+				distrs = app_statistic.session.query(Distribution).filter_by(was_deletd=False, **http_args).all()
 			except InvalidRequestError as err:
 				return {"messages": err.args[0]}
 			temp = []
