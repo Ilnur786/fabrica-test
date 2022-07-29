@@ -3,7 +3,6 @@ from werkzeug.datastructures import ImmutableMultiDict
 from flask import request
 from datetime import datetime
 from distutils.util import strtobool
-from werkzeug.exceptions import HTTPException
 
 
 datetime_format = '%Y-%m-%d %H:%M'

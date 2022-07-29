@@ -1,7 +1,6 @@
 from flask import Flask
 import pytz
 import secrets
-import logging
 # CURRENT PROJECT MODULES
 from db_api import Base
 from db_api import engine

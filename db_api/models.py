@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Table, Column, Integer, DateTime, Float, Boolean, String, MetaData, ForeignKey
+from sqlalchemy import Column, Integer, DateTime, Boolean, String, ForeignKey
 from datetime import datetime
 import tzlocal
 import pytz
