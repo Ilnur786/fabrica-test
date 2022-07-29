@@ -19,6 +19,31 @@ app_client.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
 # CLIENT ROUTES SECTION
 
+@app_client.route('/api/v1/client/', methods=['post'])
+@convert_str_in_bool
+@convert_str_in_datetime
+@data_provided_validator
+def create_client():
+	json_data = request.get_json()
+	# Validate and deserialize input
+	try:
+		data = client_schema.load(json_data)
+	except ValidationError as err:
+		return err.messages, 422
+	client = app_client.session.query(Client).filter_by(mobile_number=data['mobile_number']).first()
+	if client is None:
+		# Create a new client
+		client = Client(**data)
+		app_client.session.add(client)
+		app_client.session.commit()
+		result = client_schema.dump(client)
+		return {"message": "Created new client", "client": result}
+	else:
+		# return existed client
+		result = client_schema.dump(client)
+		return {"message": "Client already exists", "client": result}
+
+
 @app_client.route('/api/v1/client/delete', methods=['get'])
 @convert_str_in_bool
 @args_provided_validator
@@ -73,7 +98,7 @@ def update_clients_attributes():
 @convert_str_in_bool
 @convert_str_in_datetime
 @data_provided_validator
-def update_client_attributes(pk):
+def update_client_attributes_by_pk(pk):
 	if request.method == 'POST':
 		json_data = request.get_json()
 		try:
@@ -91,7 +116,7 @@ def update_client_attributes(pk):
 @app_client.route('/api/v1/client/', methods=['get'])
 @convert_str_in_bool
 @convert_str_in_datetime
-def get_clients():
+def get_clients_exclude_deleted():
 	http_args = request.args
 	if not http_args:
 		try:
@@ -107,31 +132,6 @@ def get_clients():
 			return {"messages": err.args[0]}, 422
 		result = clients_schema.dump(clients)
 		return {"message": "Matched clients", "client": result}
-
-
-@app_client.route('/api/v1/client/', methods=['post'])
-@convert_str_in_bool
-@convert_str_in_datetime
-@data_provided_validator
-def create_client():
-	json_data = request.get_json()
-	# Validate and deserialize input
-	try:
-		data = client_schema.load(json_data)
-	except ValidationError as err:
-		return err.messages, 422
-	client = app_client.session.query(Client).filter_by(mobile_number=data['mobile_number']).first()
-	if client is None:
-		# Create a new client
-		client = Client(**data)
-		app_client.session.add(client)
-		app_client.session.commit()
-		result = client_schema.dump(client)
-		return {"message": "Created new client", "client": result}
-	else:
-		# return existed client
-		result = client_schema.dump(client)
-		return {"message": "Client already exists", "client": result}
 
 
 @app_client.route('/api/v1/client/all', methods=['get'])

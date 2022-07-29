@@ -36,7 +36,7 @@ def get_distribution_statistic_by_pk(pk):
 
 
 @app_statistic.route('/api/v1/distribution/statistic/all', methods=['get', 'post'])
-def get_all_distributions_statistic():
+def get_distributions_statistic_include_deleted():
 	if request.method == 'GET':
 		try:
 			distrs = app_statistic.session.query(Distribution).all()
@@ -61,7 +61,7 @@ def get_all_distributions_statistic():
 @app_statistic.route('/api/v1/distribution/statistic/', methods=['get', 'post'])
 @convert_str_in_bool
 @convert_str_in_datetime
-def get_distributions_statistic():
+def get_distributions_statistic_exclude_deleted():
 	if request.method == 'GET':
 		http_args = request.args
 		if not http_args:

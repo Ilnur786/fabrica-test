@@ -74,7 +74,7 @@ def update_distributions_attributes():
 @convert_str_in_bool
 @convert_str_in_datetime
 @data_provided_validator
-def update_distribution_attributes(pk):
+def update_distribution_attributes_by_pk(pk):
 	if request.method == 'POST':
 		json_data = request.get_json()
 		try:
@@ -114,7 +114,7 @@ def create_distribution():
 @app_distribution.route('/api/v1/distribution/', methods=['get'])
 @convert_str_in_bool
 @convert_str_in_datetime
-def get_distributions():
+def get_distributions_exclude_deleted():
 	http_args = request.args
 	if not http_args:
 		try:
@@ -133,7 +133,7 @@ def get_distributions():
 
 
 @app_distribution.route('/api/v1/distribution/all', methods=['get'])
-def get_all_distributions_include_deleted():
+def get_distributions_include_deleted():
 	try:
 		distrs = app_distribution.session.query(Distribution).all()
 	except InvalidRequestError as err:
@@ -143,7 +143,7 @@ def get_all_distributions_include_deleted():
 
 
 @app_distribution.route('/api/v1/distribution/<int:pk>')
-def get_distribution(pk):
+def get_distribution_by_pk(pk):
 	try:
 		distr = app_distribution.session.query(Distribution).filter_by(id=pk).first()
 	except InvalidRequestError as err:
