@@ -1,7 +1,6 @@
 .venv
 .idea
 .git
-enum_test.py
 config/config.ini
 config/.env.dev
 db_api/create_tables.py
