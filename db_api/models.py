@@ -40,15 +40,6 @@ class Distribution(Base, ModelsConfig):
 			   f'end_date: {self.end_date.strftime(self.datetime_format)}, was_deleted: {self.was_deleted}>'
 
 
-# association table for Clients-Messages (many-to-many) relationship
-# association_table = Table(
-#     "association",
-#     Base.metadata,
-#     Column("client_id", ForeignKey("client.id"), primary_key=True),
-#     Column("message_id", ForeignKey("message.id"), primary_key=True),
-# )
-
-
 class Client(Base, ModelsConfig):
 	__tablename__ = 'clients'
 
@@ -92,8 +83,12 @@ class Message(Base, ModelsConfig):
 			   f'send_date: {self.send_date.strftime(self.datetime_format) if self.send_date else None}, ' \
 			   f'sending_status: {self.sending_status}>'
 
+# ASSOCIATION TABLE REALISATION:
 
-# ASSOCIATION OBJECT can be suitable if there required to hold another fields in associate. table, such as date or etc.
+####################################### 1 ####################################################
+# ASSOCIATION OBJECT can be suitable if there:
+# 1) Message object has composite pk (Distribution.id and Client.id), but it has own pk
+# 2) Required to hold another fields in associate. table, such as date or etc.
 # ON THE OTHER HAND, it required create objects through association object creation, that isn't comfortable:
 	# create parent, append a child via association
 	# p = Parent()
@@ -113,5 +108,14 @@ class Message(Base, ModelsConfig):
 # 	client = relationship("Client", back_populates="messages")
 # 	message = relationship("Message", back_populates="clients")
 
+
+# ###################################### 2 ####################################################
+# association table for Clients-Messages (many-to-many) relationship
+# association_table = Table(
+#     "association",
+#     Base.metadata,
+#     Column("client_id", ForeignKey("client.id"), primary_key=True),
+#     Column("message_id", ForeignKey("message.id"), primary_key=True),
+# )
 
 __all__ = ["Distribution", "Client", "Message", "Base"]
