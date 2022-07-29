@@ -94,3 +94,6 @@ class ClientSchema(BaseSchema):
 			if not data.get('mobile_operator_code'):
 				data['mobile_operator_code'] = data['mobile_number'][1:4]
 		return data
+
+
+__all__ = ['DistributionSchema', 'ClientSchema', 'MessageSchema']
