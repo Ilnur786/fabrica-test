@@ -9,16 +9,27 @@ from werkzeug.exceptions import HTTPException
 datetime_format = '%Y-%m-%d %H:%M'
 
 
+def GET_or_405(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		return func(*args, **kwargs) if request.method == 'GET' else {"message": "POST method is not support"}, 405
+	return wrapper
+
+
+def POST_or_405(func):
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		return func(*args, **kwargs) if request.method == 'POST' else {"message": "GET method is not support"}, 405
+	return wrapper
+
+
 def convert_str_in_datetime(func):
 	@wraps(func)
 	def wrapper(*args, **kwargs):
 		# IF REQUEST METHOD IS GET, CONSEQUENTLY JSON_DATA DOESN'T EXIST, WHICH LEAD 400 ERROR:
 		# 400 Bad Request: Did not attempt to load JSON data because the request Content-Type was not 'application/json'
-		try:
+		if request.method == "POST":
 			data = request.get_json()
-		except HTTPException:
-			pass
-		else:
 			if data.get('start_date'):
 				data['start_date'] = datetime.strptime(data['start_date'], datetime_format)
 			if data.get('end_date'):
@@ -36,11 +47,8 @@ def convert_str_in_datetime(func):
 def convert_str_in_bool(func):
 	@wraps(func)
 	def wrapper(*args, **kwargs):
-		try:
+		if request.method == "POST":
 			data = request.get_json()
-		except HTTPException:
-			pass
-		else:
 			if data.get('was_deleted'):
 				data['was_deleted'] = bool(strtobool(data['was_deleted']))
 		http_args = request.args.to_dict()
@@ -64,11 +72,19 @@ def args_provided_validator(func):
 def data_provided_validator(func):
 	@wraps(func)
 	def wrapper(*args, **kwargs):
-		data = request.get_json()
-		if not data:
-			return {"message": "No input data provided (POST variables)"}, 400
+		if request.method == "POST":
+			data = request.get_json()
+			if not data:
+				return {"message": "No input data provided (POST variables)"}, 400
 		return func(*args, **kwargs)
 	return wrapper
 
 
-__all__ = ['convert_str_in_bool', 'convert_str_in_datetime', 'data_provided_validator', 'args_provided_validator']
+__all__ = [
+	'convert_str_in_bool',
+	'convert_str_in_datetime',
+	'data_provided_validator',
+	'args_provided_validator',
+	'GET_or_405',
+	'POST_or_405'
+]
