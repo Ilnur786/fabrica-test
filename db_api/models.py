@@ -96,8 +96,8 @@ class Message(Base, ModelsConfig):
 	# a.child = Child()
 	# p.children.append(a)
 
-# many to many association object. Distribution and Client can relate to multiple Messages.
-# docs here: https://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
+# MANY-TO-MANY association object. Distribution and Client can relate to multiple Messages.
+# DOCS HERE: https://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
 # class Association(Base, ModelsConfig):
 # 	__tablename__ = "association"
 #
@@ -110,7 +110,7 @@ class Message(Base, ModelsConfig):
 
 
 # ###################################### 2 ####################################################
-# association table for Clients-Messages (many-to-many) relationship
+# ASSOCIATION TABLE for Clients-Messages (many-to-many) relationship
 # association_table = Table(
 #     "association",
 #     Base.metadata,
