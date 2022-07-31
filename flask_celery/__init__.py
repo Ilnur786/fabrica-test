@@ -1,0 +1,1 @@
+from flask_celery.get_connection import *
