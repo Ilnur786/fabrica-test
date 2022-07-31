@@ -1,4 +1,4 @@
-from flask import request, Blueprint, _app_ctx_stack
+from flask import request, Blueprint, _app_ctx_stack, current_app
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 from marshmallow import ValidationError
@@ -9,15 +9,38 @@ from extension import dynamic_update
 from extension import convert_str_in_datetime, convert_str_in_bool, args_provided_validator, data_provided_validator
 from json_validator import DistributionSchema
 
-app_distribution = Blueprint('app_distribution', __name__)
-app_distribution.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
-
 # CREATE MARSHMALLOW SCHEMAS INSTANCES
 distribution_schema = DistributionSchema(exclude=('sent', 'not_sent'))
 distributions_schema = DistributionSchema(exclude=('sent', 'not_sent'), many=True)
 
+# BLUEPRINT APP
+app_distribution = Blueprint('app_distribution', __name__)
+app_distribution.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
+
 
 # DISTRIBUTION ROUTES SECTION
+
+# doesn't require such like convert_... decorators, cause marshmallow expects strings
+@app_distribution.route('/api/v1/distribution/', methods=['post'])
+@data_provided_validator
+def create_distribution():
+	json_data = request.get_json()
+	# Validate and deserialize input
+	try:
+		data = distribution_schema.load(json_data)
+	except ValidationError as err:
+		return err.messages, 422
+	# Create a new distribution
+	distr = Distribution(**data)
+	app_distribution.session.add(distr)
+	app_distribution.session.commit()
+	# MESSAGES WILL BE CREATED AFTER DISTRIBUTION START TIME WILL COME AND DISTRIBUTION_MAKER_APP WILL MAKE DISTRIBUTION
+	# msg = Message(distribution_id=distr.id)
+	# app_distribution.session.add(msg)
+	# app_distribution.session.commit()
+	result = distribution_schema.dump(distr)
+	return {"message": "Created new distribution", "distribution": result}
+
 
 @app_distribution.route('/api/v1/distribution/delete', methods=['get'])
 @convert_str_in_bool
@@ -87,28 +110,6 @@ def update_distribution_attributes_by_pk(pk):
 		return {"message": "Successful update", "distribution": result}
 	else:
 		return {"message": "GET method is not implemented"}, 405
-
-
-# doesn't require such like convert_... decorators, cause marshmallow expects strings
-@app_distribution.route('/api/v1/distribution/', methods=['post'])
-@data_provided_validator
-def create_distribution():
-	json_data = request.get_json()
-	# Validate and deserialize input
-	try:
-		data = distribution_schema.load(json_data)
-	except ValidationError as err:
-		return err.messages, 422
-	# Create a new distribution
-	distr = Distribution(**data)
-	app_distribution.session.add(distr)
-	app_distribution.session.commit()
-	# MESSAGES WILL BE CREATED AFTER DISTRIBUTION START TIME WILL COME AND DISTRIBUTION_MAKER_APP WILL MAKE DISTRIBUTION
-	# msg = Message(distribution_id=distr.id)
-	# app_distribution.session.add(msg)
-	# app_distribution.session.commit()
-	result = distribution_schema.dump(distr)
-	return {"message": "Created new distribution", "distribution": result}
 
 
 @app_distribution.route('/api/v1/distribution/', methods=['get'])
