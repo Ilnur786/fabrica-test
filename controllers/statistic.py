@@ -2,7 +2,7 @@ from flask import request, Blueprint, _app_ctx_stack
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 # CURRENT PROJECT MODULES
-from db_api import Distribution
+from db_api import Distribution, Message
 from db_api import SessionLocal
 from extension import GET_or_405
 from extension import convert_str_in_datetime, convert_str_in_bool
@@ -28,9 +28,9 @@ def get_distribution_statistic_by_pk(pk):
 		distr = app_statistic.session.query(Distribution).filter_by(id=pk).first()
 	except InvalidRequestError as err:
 		return {"messages": err.args[0]}
-	sent_msgs = distr.message.filter_by(sending_status=True).all()
+	sent_msgs = distr.message.filter(Message.send_status == 'SENT').all()
 	sent_msgs_to_dict = messages_schema.dump(sent_msgs)
-	not_sent_msgs = distr.message.filter_by(sending_status=False).all()
+	not_sent_msgs = distr.message.filter(Message.send_status != 'SENT').all()
 	not_sent_msgs_to_dict = messages_schema.dump(not_sent_msgs)
 	result = distribution_schema.dump(distr)
 	result.update(sent_msgs=sent_msgs_to_dict, not_sent_msgs=not_sent_msgs_to_dict)
@@ -46,8 +46,8 @@ def get_distributions_statistic_include_deleted():
 		return {"messages": err.args[0]}
 	result = []
 	for distr in distrs:
-		sent_msgs_count = distr.message.filter_by(sending_status=True).count()
-		not_sent_msgs_count = distr.message.filter_by(sending_status=False).count()
+		sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
+		not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
 		distr_dict = distribution_schema.dump(distr)
 		distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
 		result.append(distr_dict)
@@ -74,8 +74,8 @@ def get_distributions_statistic_exclude_deleted():
 		msg_text = "Matched distributions statistic"
 	result = []
 	for distr in distrs:
-		sent_msgs_count = distr.message.filter_by(sending_status=True).count()
-		not_sent_msgs_count = distr.message.filter_by(sending_status=False).count()
+		sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
+		not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
 		distr_dict = distribution_schema.dump(distr)
 		distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
 		result.append(distr_dict)
