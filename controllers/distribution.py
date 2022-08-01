@@ -13,8 +13,8 @@ app_distribution = Blueprint('app_distribution', __name__)
 app_distribution.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
 # CREATE MARSHMALLOW SCHEMAS INSTANCES
-distribution_schema = DistributionSchema(exclude=('sent', 'not_sent'))
-distributions_schema = DistributionSchema(exclude=('sent', 'not_sent'), many=True)
+distribution_schema = DistributionSchema()
+distributions_schema = DistributionSchema(many=True)
 
 
 # DISTRIBUTION ROUTES SECTION
@@ -67,7 +67,7 @@ def update_distributions_attributes():
 		result = distributions_schema.dump(updated_distrs, many=True)
 		return {"message": "Successful update", "distribution": result}
 	else:
-		return {"message": "GET method is not implemented"}, 405
+		return {"message": "GET method is not allowed"}, 405
 
 
 @app_distribution.route('/api/v1/distribution/update/<int:pk>', methods=['get', 'post'])
@@ -86,7 +86,7 @@ def update_distribution_attributes_by_pk(pk):
 		result = distribution_schema.dump(updated_distr)
 		return {"message": "Successful update", "distribution": result}
 	else:
-		return {"message": "GET method is not implemented"}, 405
+		return {"message": "GET method is not allowed"}, 405
 
 
 # doesn't require such like convert_... decorators, cause marshmallow expects strings
@@ -104,9 +104,6 @@ def create_distribution():
 	app_distribution.session.add(distr)
 	app_distribution.session.commit()
 	# MESSAGES WILL BE CREATED AFTER DISTRIBUTION START TIME WILL COME AND DISTRIBUTION_MAKER_APP WILL MAKE DISTRIBUTION
-	# msg = Message(distribution_id=distr.id)
-	# app_distribution.session.add(msg)
-	# app_distribution.session.commit()
 	result = distribution_schema.dump(distr)
 	return {"message": "Created new distribution", "distribution": result}
 
