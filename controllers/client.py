@@ -91,7 +91,7 @@ def update_clients_attributes():
 		result = clients_schema.dump(updated_clients, many=True)
 		return {"message": "Successful update", "clients": result}
 	else:
-		return {"message": "GET method is not implemented"}, 405
+		return {"message": "GET method is not allowed"}, 405
 
 
 @app_client.route('/api/v1/client/update/<int:pk>', methods=['get', 'post'])
@@ -110,7 +110,7 @@ def update_client_attributes_by_pk(pk):
 		result = client_schema.dump(updated_client)
 		return {"message": "Successful update", "client": result}
 	else:
-		return {"message": "GET method is not implemented"}, 405
+		return {"message": "GET method is not allowed"}, 405
 
 
 @app_client.route('/api/v1/client/', methods=['get'])
@@ -144,7 +144,7 @@ def get_clients_include_deleted():
 		result = clients_schema.dump(clients)
 		return {"message": "All clients, include deleted", "clients": result}
 	else:
-		return {"message": "POST method is not implemented"}, 405
+		return {"message": "POST method is not allowed"}, 405
 
 
 @app_client.route('/api/v1/client/<int:pk>')
