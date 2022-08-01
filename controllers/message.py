@@ -16,8 +16,15 @@ messages_schema = MessageSchema(many=True)
 
 # MESSAGES ROUTES SECTION
 
-@app_messsage.route('/api/v1/message/', methods=['get'])
+@app_messsage.route('/api/v1/message/all', methods=['get'])
 def get_messages():
-	messages = app_messsage.session.query(Message).all()
-	result = messages_schema.dump(messages)
-	return {"message": "All messages", "messages": result}
+    messages = app_messsage.session.query(Message).all()
+    result = messages_schema.dump(messages)
+    return {"message": "All messages", "messages": result}
+
+
+@app_messsage.route('/api/v1/message/delete/all', methods=['get'])
+def delete_messages():
+    result = app_messsage.session.query(Message).delete()
+    app_messsage.session.commit()
+    return {"message": "All messages were deleted", "messages": result}
