@@ -43,8 +43,6 @@ class DistributionSchema(BaseSchema):
 	client_filter = RequiredStr()
 	end_date = RequiredDateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
 	was_deleted = fields.Bool()
-	sent = fields.Nested(MessageSchema, many=True, dump_only=True)
-	not_sent = fields.Nested(MessageSchema, many=True, dump_only=True)
 
 	# @post_dump
 	# def set_messages_field(self, data, many, **kwargs):
