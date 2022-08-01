@@ -2,7 +2,6 @@ from sqlalchemy.orm import scoped_session
 from datetime import datetime
 from db_api import SessionLocal
 from db_api import Distribution, Client, Message
-from extension import dynamic_update
 import requests as req
 from envparse import env
 import time
@@ -14,6 +13,7 @@ def main():
     db_session = scoped_session(SessionLocal)
     send_status_cases = ['SENT', 'NOT_SENT', 'FAIL']
     s = req.session()
+    s.headers.update({"ContentType": "application/json", "Authorization": TOKEN})
     while True:
         distrs = db_session.query(Distribution).filter(Distribution.end_date >= datetime.now()).all()
         if distrs:
@@ -32,8 +32,7 @@ def main():
                         "phone": client.mobile_number,
                         "text": distr.text
                     }
-                    r = s.post(url=f'https://probe.fbrq.cloud/v1/send/{msg.id}', json=payload,
-                               headers={"Content-Type": "application/json", "Authorization": TOKEN})
+                    r = s.post(url=f'https://probe.fbrq.cloud/v1/send/{msg.id}', json=payload)
                     if r.status_code == 200:
                         msg.send_status = "SENT"
                         msg.send_date = datetime.now()
