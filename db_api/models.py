@@ -28,7 +28,7 @@ class Distribution(Base, ModelsConfig):
 	end_date = Column(DateTime, comment='date when distribution will be ended')
 	was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
 	# back_populates look to Client class "message" attribute, not to __tablename__
-	message = relationship("Message", back_populates="distribution")
+	message = relationship("Message", back_populates="distribution", lazy="dynamic")
 
 	# common relationship is one-to-many. uselist=False is declarate one-to-one relate
 	# back_populates declarate back direction ralative:
