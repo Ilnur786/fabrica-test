@@ -9,6 +9,7 @@ from flask_celery import make_celery
 from envparse import env
 from flask_mail import Mail, Message
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_apscheduler import APScheduler
 
 env.read_envfile('config/.env.dev')
 
@@ -21,28 +22,22 @@ app.register_blueprint(app_distribution)
 app.register_blueprint(app_messsage)
 app.register_blueprint(app_statistic)
 
-# app.config.update(CELERY_CONFIG={
-#     'broker_url': 'redis://localhost:6379',
-#     'result_backend': 'redis://localhost:6379',
-# })
-#
-# celery = make_celery(app)
-
 # ADD SECRET KEY
 app.config['SECRET_KEY'] = secrets.token_hex(16)
+
 # Flask - Mail configuration
 app.config['MAIL_SERVER'] = 'smtp.mail.ru'
 app.config['MAIL_PORT'] = 25
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
-# app.config['MAIL_DEFAULT_SENDER'] = 'flask@example.com'
-
-# CREATE TABLES
-Base.metadata.create_all(bind=engine)
 
 # CREATE MAIL OBJECT
 mail = Mail(app)
+scheduler = APScheduler()
+
+# CREATE TABLES
+Base.metadata.create_all(bind=engine)
 
 
 def send_email(subject='from flask', sender=app.config['MAIL_USERNAME'], recipients=None):
@@ -55,10 +50,13 @@ def send_email(subject='from flask', sender=app.config['MAIL_USERNAME'], recipie
         mail.send(msg)
 
 
-# send_email()
-sched = BackgroundScheduler(daemon=True, max_instances=1)
-sched.add_job(send_email, 'interval', minutes=0.2)
-sched.start()
+# # send_email via native scheduler
+# sched = BackgroundScheduler(daemon=True, max_instances=1)
+# sched.add_job(send_email, 'interval', minutes=0.2)
+# sched.start()
+
 
 if __name__ == "__main__":
+    scheduler.add_job(id='Scheduled Task', func=send_email, trigger="interval", seconds=20)
+    scheduler.start()
     app.run(debug=True)
