@@ -39,6 +39,7 @@ def main():
                     else:
                         msg.send_status = "FAIL"
                     db_session.commit()
+        print('Up to date', datetime.now().strftime('%Y-%m-%d %H:%M'))
         time.sleep(30)
 
 
