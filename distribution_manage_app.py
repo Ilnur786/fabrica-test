@@ -8,8 +8,9 @@ from controllers import app_client, app_distribution, app_messsage, app_statisti
 from flask_celery import make_celery
 from envparse import env
 from flask_mail import Mail, Message
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask_apscheduler import APScheduler
+import requests as req
+import os
 
 env.read_envfile('config/.env.dev')
 
@@ -22,41 +23,38 @@ app.register_blueprint(app_distribution)
 app.register_blueprint(app_messsage)
 app.register_blueprint(app_statistic)
 
-# ADD SECRET KEY
+# APP CONFIG
 app.config['SECRET_KEY'] = secrets.token_hex(16)
+app.config['DEBUG'] = True
 
-# Flask - Mail configuration
-app.config['MAIL_SERVER'] = 'smtp.mail.ru'
-app.config['MAIL_PORT'] = 25
-app.config['MAIL_USE_TLS'] = True
+# FLASK-MAIL CONFIGURATION
 app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
+app.config['MAIL_SERVER'] = 'smtp.mail.ru' if '@mail.ru' in app.config['MAIL_USERNAME'] else 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 25 if '@mail.ru' in app.config['MAIL_USERNAME'] else 587
+app.config['MAIL_USE_TLS'] = True
 
-# CREATE MAIL OBJECT
+# CREATE MAIL INSTANCE
 mail = Mail(app)
+
+# CREATE SCHEDULER INSTANCE
 scheduler = APScheduler()
 
 # CREATE TABLES
 Base.metadata.create_all(bind=engine)
 
 
-def send_email(subject='from flask', sender=app.config['MAIL_USERNAME'], recipients=None):
+def send_email():
+    r = req.get(url='http://127.0.0.1:5000/api/v1/distribution/statistic/all')
     with app.app_context():
-        if recipients is None:
-            recipients = ['ilnurfrwork@gmail.com']
-        msg = Message(subject, sender=sender, recipients=recipients)
-        msg.body = "text_body"
-        # msg.html = html_body
+        recipients = [env.str('RECIPIENT_MAIL')]
+        msg = Message(subject='Distribution Statistic', sender=app.config['MAIL_USERNAME'], recipients=recipients)
+        msg.body = r.text
         mail.send(msg)
 
 
-# # send_email via native scheduler
-# sched = BackgroundScheduler(daemon=True, max_instances=1)
-# sched.add_job(send_email, 'interval', minutes=0.2)
-# sched.start()
-
-
 if __name__ == "__main__":
-    scheduler.add_job(id='Scheduled Task', func=send_email, trigger="interval", seconds=20)
-    scheduler.start()
-    app.run(debug=True)
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        scheduler.add_job(id='Scheduled Task', func=send_email, trigger="interval", hours=24)
+        scheduler.start()
+    app.run()
