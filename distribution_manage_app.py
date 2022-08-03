@@ -26,7 +26,7 @@ app.register_blueprint(app_statistic)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['DEBUG'] = True
 
-# FLASK-MAIL CONFIGURATION
+# FLASK-MAIL CONFIG
 app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
 app.config['MAIL_SERVER'] = 'smtp.mail.ru' if '@mail.ru' in app.config['MAIL_USERNAME'] else 'smtp.gmail.com'
