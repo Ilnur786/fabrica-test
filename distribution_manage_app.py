@@ -5,7 +5,6 @@ import secrets
 from db_api import Base
 from db_api import engine
 from controllers import app_client, app_distribution, app_messsage, app_statistic
-from flask_celery import make_celery
 from envparse import env
 from flask_mail import Mail, Message
 from flask_apscheduler import APScheduler
