@@ -44,12 +44,6 @@ class DistributionSchema(BaseSchema):
     end_date = fields.DateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
     was_deleted = fields.Bool()
 
-# @post_dump
-# def set_messages_field(self, data, many, **kwargs):
-# 	if many:
-# 		data['sent'] = str(len(data['sent']))
-# 		data['not_sent'] = str(len(data['not_sent']))
-
 
 class ClientSchema(BaseSchema):
     id = fields.Int(dump_only=True)

@@ -51,7 +51,7 @@ class Client(Base, ModelsConfig):
     tag = Column(String, comment='free fillable field. Can be nullable')
     # after API will be ready, user can give tz in "Europe/Moscow" like format.
     # Table with values are there: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-    timezone = Column(String(30), comment='it will be look like "Europe/Moscow"')
+    timezone = Column(String(30), default="Europe/Moscow", comment='it will be look like "Europe/Moscow"')
     was_deleted = Column(Boolean, default=False, comment='Shows if this row has been removed')
     # message = relationship('Association', back_populates="client")
     message = relationship('Message', back_populates="client")
