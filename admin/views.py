@@ -3,6 +3,8 @@ from wtforms.validators import ValidationError as WTFValidationError
 from json_validator import ClientSchema, DistributionSchema
 from extension import object_as_dict
 from marshmallow.exceptions import ValidationError as MMValidationError
+from flask import flash
+from flask_admin.helpers import is_form_submitted
 
 client_schema = ClientSchema()
 distribution_schema = DistributionSchema()
@@ -21,14 +23,21 @@ class DistributionView(ModelView):
     column_display_pk = 'id'
     column_default_sort = 'id'
 
-    def on_model_change(self, form, model, is_created):
-        form_attrs = object_as_dict(model)
-        del form_attrs['id']
-        del form_attrs['was_deleted']
-        if form.text.data is None:
-            raise WTFValidationError('Text is Null')
-        if form.client_filter.data is None:
-            raise WTFValidationError('Client filter is Null')
+    # def on_model_change(self, form, model, is_created):
+    #     if form.text.data is None:
+    #         raise WTFValidationError('Text is Null')
+    #     if form.client_filter.data is None:
+    #         raise WTFValidationError('Client filter is Null')
+
+    def validate_form(self, form):
+        if is_form_submitted():
+            if form.text.data is None:
+                flash('Text cannot be null')
+                return
+            if form.client_filter.data is None:
+                flash('Client filter cannot be null')
+                return
+            return super().validate_form(form)
 
 
 class ClientView(ModelView):
@@ -39,7 +48,7 @@ class ClientView(ModelView):
 
     form_create_rules = ['mobile_number', 'mobile_operator_code', 'tag', 'timezone']
     column_filters = form_edit_rules = ['mobile_number', 'mobile_operator_code', 'tag', 'timezone', 'was_deleted']
-    column_sortable_list = ['id', 'mobile_operator_code',  'tag', 'was_deleted']
+    column_sortable_list = ['id', 'mobile_operator_code', 'tag', 'was_deleted']
     column_display_pk = 'id'
     column_default_sort = 'id'
 
@@ -47,21 +56,35 @@ class ClientView(ModelView):
         'mobile_operator_code': 'Mobile Operator Code (unrequired)',
     }
 
-    def on_model_change(self, form, model, is_created):
-        form_attrs = object_as_dict(model)
-        del form_attrs['id']
-        del form_attrs['was_deleted']
-        if form.mobile_number.data is None:
-            raise WTFValidationError('Mobile number is Null')
-        if form.tag.data is None:
-            raise WTFValidationError('Tag is Null')
-        try:
-            client_schema.load(form_attrs)
-        except MMValidationError as err:
-            raise WTFValidationError(err.messages)
-        else:
-            if model.mobile_operator_code is None:
-                model.mobile_operator_code = form.mobile_number.data[1:4]
+    # def on_model_change(self, form, model, is_created):
+    #     if form.mobile_number.data is None:
+    #         raise WTFValidationError('Mobile number is Null')
+    #     if form.tag.data is None:
+    #         raise WTFValidationError('Tag is Null')
+    #     if model.mobile_operator_code is None:
+    #         model.mobile_operator_code = form.mobile_number.data[1:4]
+    #     try:
+    #         client_schema.load(form.data)
+    #     except MMValidationError as err:
+    #         raise WTFValidationError(err.messages)
+
+    def validate_form(self, form):
+        if is_form_submitted():
+            if form.mobile_number.data is None:
+                flash('Mobile number cannot be null')
+                return
+            if form.tag.data is None:
+                flash('Tag cannot be null')
+                return
+            if form.mobile_operator_code.data is None:
+                form.mobile_operator_code.data = form.mobile_number.data[1:4]
+            try:
+                client_schema.load(form.data)
+            except MMValidationError as err:
+                _, err_msg = err.messages.popitem()
+                flash(err_msg[0])
+                return
+            return super().validate_form(form)
 
 
 class MessageView(ModelView):
@@ -77,4 +100,4 @@ class MessageView(ModelView):
     column_default_sort = 'id'
 
 
-__all__ = ['DistributionView', 'ClientView', 'MessageView']
+__all__ = ['DistributionView', 'ClientView', 'MessageView', 'is_form_submitted']
