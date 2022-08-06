@@ -7,14 +7,14 @@ from flask_mail import Mail
 from flask_mail import Message as FlaskMessage
 from flask_apscheduler import APScheduler
 from flask_admin import Admin
-from admin import DistributionView, ClientView, MessageView
 import requests as req
 import os
 # CURRENT PROJECT MODULES
-from db_api import Base, SessionLocal
-from db_api import engine
+from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
 from controllers import app_client, app_distribution, app_messsage, app_statistic
+from admin import DistributionView, ClientView, MessageView
+
 
 env.read_envfile('config/.env.dev')
 
