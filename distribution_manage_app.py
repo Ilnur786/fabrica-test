@@ -1,4 +1,4 @@
-from flask import Flask, _app_ctx_stack
+from flask import Flask, _app_ctx_stack, Blueprint
 from sqlalchemy.orm import scoped_session
 import pytz
 import secrets
@@ -7,14 +7,14 @@ from flask_mail import Mail
 from flask_mail import Message as FlaskMessage
 from flask_apscheduler import APScheduler
 from flask_admin import Admin
-from admin import DistributionView, ClientView, MessageView
 import requests as req
 import os
+from flask_restx import Api
 # CURRENT PROJECT MODULES
-from db_api import Base, SessionLocal
-from db_api import engine
+from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
-from controllers import app_client, app_distribution, app_messsage, app_statistic
+from class_based_views import doc_blueprint
+from admin import DistributionView, ClientView, MessageView
 
 env.read_envfile('config/.env.dev')
 
@@ -22,23 +22,23 @@ env.read_envfile('config/.env.dev')
 app = Flask(__name__)
 app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
-# REGISTER BLUEPRINTS
-app.register_blueprint(app_client)
-app.register_blueprint(app_distribution)
-app.register_blueprint(app_messsage)
-app.register_blueprint(app_statistic)
+
+# CREATE SWAGGER DOCS
+app.register_blueprint(doc_blueprint)
 
 # set optional bootswatch theme
 # app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
 
+# CREATE ADMIN DASHBOARD
 admin = Admin(app, name='Distribution Manage', template_mode='bootstrap4')
+
 # Add administrative views here
 admin.add_view(DistributionView(Distribution, app.session))
 admin.add_view(ClientView(Client, app.session))
 admin.add_view(MessageView(Message, app.session))
 
-
 # APP CONFIG
+app.config['RESTX_MASK_SWAGGER'] = False
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['DEBUG'] = True
 

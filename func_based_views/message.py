@@ -6,8 +6,8 @@ from db_api import SessionLocal
 from json_validator import MessageSchema
 
 
-app_messsage = Blueprint('app_messsage', __name__)
-app_messsage.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
+app_message = Blueprint('app_message', __name__)
+app_message.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
 # CREATE MARSHMALLOW SCHEMAS INSTANCES
 message_schema = MessageSchema()
@@ -16,15 +16,15 @@ messages_schema = MessageSchema(many=True)
 
 # MESSAGES ROUTES SECTION
 
-@app_messsage.route('/api/v1/message/all', methods=['get'])
+@app_message.route('/api/v1/message/all', methods=['get'])
 def get_messages():
-    messages = app_messsage.session.query(Message).all()
+    messages = app_message.session.query(Message).all()
     result = messages_schema.dump(messages)
     return {"message": "All messages", "messages": result}
 
 
-@app_messsage.route('/api/v1/message/delete/all', methods=['get'])
+@app_message.route('/api/v1/message/delete/all', methods=['get'])
 def delete_messages():
-    result = app_messsage.session.query(Message).delete()
-    app_messsage.session.commit()
+    result = app_message.session.query(Message).delete()
+    app_message.session.commit()
     return {"message": "All messages were deleted", "messages": result}

@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, ValidationError, pre_load, post_dump, pre_dump, validates_schema
 from marshmallow.validate import Length
 from functools import partial
-from datetime import datetime
+from datetime import datetime, timedelta
 import tzlocal
 
 
@@ -44,6 +44,18 @@ class DistributionSchema(BaseSchema):
     end_date = fields.DateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
     was_deleted = fields.Bool()
 
+    @pre_load()
+    def create_start_date(self, data, **kwargs):
+        if not data.get('start_date'):
+            data['start_date'] = datetime.now()
+        return data
+
+    @pre_load()
+    def create_end_date(self, data, **kwargs):
+        if not data.get('end_date'):
+            data['end_date'] = datetime.now() + timedelta(hours=1)
+        return data
+
 
 class ClientSchema(BaseSchema):
     id = fields.Int(dump_only=True)
@@ -71,13 +83,13 @@ class ClientSchema(BaseSchema):
                 return ValidationError('timezone must be shorter then 30 characters', 'timezone')
 
     @pre_load
-    def get_timezone(self, data, **kwargs):
+    def create_timezone(self, data, **kwargs):
         if not data.get('timezone'):
             data['timezone'] = tzlocal.get_localzone_name()
         return data
 
     @pre_load(pass_many=True)
-    def get_mobile_operator_code(self, data, many, **kwargs):
+    def create_mobile_operator_code(self, data, many, **kwargs):
         if many:
             for el in data:
                 if not el.get('mobile_operator_code'):
