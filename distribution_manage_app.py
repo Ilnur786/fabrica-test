@@ -13,24 +13,14 @@ from flask_restx import Api
 # CURRENT PROJECT MODULES
 from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
-from func_based_views import app_distribution, app_messsage, app_statistic
-from class_based_views.client import app_client
 from class_based_views import doc_blueprint
 from admin import DistributionView, ClientView, MessageView
-
 
 env.read_envfile('config/.env.dev')
 
 # CREATE FLASK APP
 app = Flask(__name__)
 app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
-
-# REGISTER BLUEPRINTS
-# app.register_blueprint(app_client)
-# app.register_blueprint(app_distribution)
-# app.register_blueprint(app_messsage)
-# app.register_blueprint(app_statistic)
-# app.register_blueprint(doc_blueprint)
 
 
 # CREATE SWAGGER DOCS
@@ -41,6 +31,7 @@ app.register_blueprint(doc_blueprint)
 
 # CREATE ADMIN DASHBOARD
 admin = Admin(app, name='Distribution Manage', template_mode='bootstrap4')
+
 # Add administrative views here
 admin.add_view(DistributionView(Distribution, app.session))
 admin.add_view(ClientView(Client, app.session))
