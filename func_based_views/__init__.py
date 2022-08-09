@@ -3,5 +3,5 @@
 
 from func_based_views.client import app_client
 from func_based_views.distribution import app_distribution
-from func_based_views.message import app_messsage
+from func_based_views.message import app_message
 from func_based_views.statistic import app_statistic
