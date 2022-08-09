@@ -1,5 +1,5 @@
-from flask import request, Blueprint, _app_ctx_stack, abort
-from flask_restx import Resource, Api, fields, Namespace
+from flask import request, Blueprint, _app_ctx_stack
+from flask_restx import Resource, Api, fields
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 from marshmallow import ValidationError
@@ -7,7 +7,7 @@ from marshmallow import ValidationError
 from db_api import Distribution
 from db_api import SessionLocal
 from extension import dynamic_update
-from extension import convert_str_in_bool, data_provided_validator
+from extension import data_provided_validator
 from json_validator import DistributionSchema
 from datetime import datetime, timedelta
 
@@ -22,7 +22,7 @@ api = Api(app_distribution)
 
 @api.errorhandler
 def default_err_handler(error):
-    return {'message': error.args[0]}, 422
+    return {'message': 'External Error'}, 422
 
 
 ns = api.namespace('Distribution', description='Distribution related endpoints')
@@ -127,7 +127,7 @@ class DistrView(Resource):
 
 
 @ns.route('/distribution/<int:pk>')
-class ClientIdView(Resource):
+class DistributionIdView(Resource):
     @ns.doc('get_distribution')
     # @ns.marshal_with(distr_model_response)
     @ns.response(200, model=distr_model_response, description='Requested distribution')
@@ -179,7 +179,7 @@ class ClientIdView(Resource):
 
 
 @ns.route('/distribution/all')
-class ClientAllView(Resource):
+class DistributionAllView(Resource):
     @ns.doc('get_client_list_include_deleted')
     # @ns.marshal_with(distrs_model_response)
     @ns.response(200, model=distrs_model_response, description='All distributions, include deleted')

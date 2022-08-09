@@ -1,5 +1,5 @@
-from flask import request, Blueprint, _app_ctx_stack, abort
-from flask_restx import Resource, Api, fields, Namespace
+from flask import request, Blueprint, _app_ctx_stack
+from flask_restx import Resource, Api, fields
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 from marshmallow import ValidationError
@@ -7,7 +7,7 @@ from marshmallow import ValidationError
 from db_api import Client
 from db_api import SessionLocal
 from extension import dynamic_update
-from extension import convert_str_in_bool, data_provided_validator
+from extension import data_provided_validator
 from json_validator import ClientSchema
 
 # CREATE MARSHMALLOW SCHEMAS INSTANCES
@@ -22,7 +22,7 @@ api = Api(app_client)
 
 @api.errorhandler
 def default_err_handler(error):
-    return {'message': error.message}, 422
+    return {'message': 'External Error'}, 422
 
 
 ns = api.namespace('Client', description='Client related endpoints')
