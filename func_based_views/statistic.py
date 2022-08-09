@@ -24,34 +24,34 @@ messages_schema = MessageSchema(many=True)
 @app_statistic.route('/api/v1/distribution/statistic/<int:pk>', methods=['get', 'post'])
 @GET_or_405
 def get_distribution_statistic_by_pk(pk):
-	try:
-		distr = app_statistic.session.query(Distribution).filter_by(id=pk).first()
-	except InvalidRequestError as err:
-		return {"messages": err.args[0]}
-	sent_msgs = distr.message.filter(Message.send_status == 'SENT').all()
-	sent_msgs_to_dict = messages_schema.dump(sent_msgs)
-	not_sent_msgs = distr.message.filter(Message.send_status != 'SENT').all()
-	not_sent_msgs_to_dict = messages_schema.dump(not_sent_msgs)
-	result = distribution_schema.dump(distr)
-	result.update(sent_msgs=sent_msgs_to_dict, not_sent_msgs=not_sent_msgs_to_dict)
-	return {"message": "Distributions statistic", "statistic": result}
+    try:
+        distr = app_statistic.session.query(Distribution).filter_by(id=pk).first()
+    except InvalidRequestError as err:
+        return {"messages": err.args[0]}
+    sent_msgs = distr.message.filter(Message.send_status == 'SENT').all()
+    sent_msgs_to_dict = messages_schema.dump(sent_msgs)
+    not_sent_msgs = distr.message.filter(Message.send_status != 'SENT').all()
+    not_sent_msgs_to_dict = messages_schema.dump(not_sent_msgs)
+    result = distribution_schema.dump(distr)
+    result.update(sent_msgs=sent_msgs_to_dict, not_sent_msgs=not_sent_msgs_to_dict)
+    return {"message": "Distributions statistic", "statistic": result}
 
 
 @app_statistic.route('/api/v1/distribution/statistic/all', methods=['get', 'post'])
 @GET_or_405
 def get_distributions_statistic_include_deleted():
-	try:
-		distrs = app_statistic.session.query(Distribution).all()
-	except InvalidRequestError as err:
-		return {"messages": err.args[0]}
-	result = []
-	for distr in distrs:
-		sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
-		not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
-		distr_dict = distribution_schema.dump(distr)
-		distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
-		result.append(distr_dict)
-	return {"message": "All distributions statistic, include deleted", "distributions": result}
+    try:
+        distrs = app_statistic.session.query(Distribution).all()
+    except InvalidRequestError as err:
+        return {"messages": err.args[0]}
+    result = []
+    for distr in distrs:
+        sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
+        not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
+        distr_dict = distribution_schema.dump(distr)
+        distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
+        result.append(distr_dict)
+    return {"message": "All distributions statistic, include deleted", "distributions": result}
 
 
 @app_statistic.route('/api/v1/distribution/statistic/', methods=['get', 'post'])
@@ -59,24 +59,24 @@ def get_distributions_statistic_include_deleted():
 @convert_str_in_datetime
 @GET_or_405
 def get_distributions_statistic_exclude_deleted():
-	http_args = request.args
-	if not http_args:
-		try:
-			distrs = app_statistic.session.query(Distribution).filter_by(was_deleted=False).all()
-		except InvalidRequestError as err:
-			return {"messages": err.args[0]}
-		msg_text = "All distributions statistic, exclude deleted"
-	else:
-		try:
-			distrs = app_statistic.session.query(Distribution).filter_by(was_deletd=False, **http_args).all()
-		except InvalidRequestError as err:
-			return {"messages": err.args[0]}
-		msg_text = "Matched distributions statistic"
-	result = []
-	for distr in distrs:
-		sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
-		not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
-		distr_dict = distribution_schema.dump(distr)
-		distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
-		result.append(distr_dict)
-	return {"message": msg_text, "distributions": result}
+    http_args = request.args
+    if not http_args:
+        try:
+            distrs = app_statistic.session.query(Distribution).filter_by(was_deleted=False).all()
+        except InvalidRequestError as err:
+            return {"messages": err.args[0]}
+        msg_text = "All distributions statistic, exclude deleted"
+    else:
+        try:
+            distrs = app_statistic.session.query(Distribution).filter_by(was_deletd=False, **http_args).all()
+        except InvalidRequestError as err:
+            return {"messages": err.args[0]}
+        msg_text = "Matched distributions statistic"
+    result = []
+    for distr in distrs:
+        sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
+        not_sent_msgs_count = distr.message.filter(Message.send_status != 'SENT').count()
+        distr_dict = distribution_schema.dump(distr)
+        distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
+        result.append(distr_dict)
+    return {"message": msg_text, "distributions": result}
