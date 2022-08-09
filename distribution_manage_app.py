@@ -1,4 +1,4 @@
-from flask import Flask, _app_ctx_stack
+from flask import Flask, _app_ctx_stack, Blueprint
 from sqlalchemy.orm import scoped_session
 import pytz
 import secrets
@@ -9,10 +9,13 @@ from flask_apscheduler import APScheduler
 from flask_admin import Admin
 import requests as req
 import os
+from flask_restx import Api
 # CURRENT PROJECT MODULES
 from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
-from controllers import app_client, app_distribution, app_messsage, app_statistic
+from func_based_views import app_distribution, app_messsage, app_statistic
+from class_based_views.client import app_client
+from class_based_views import doc_blueprint
 from admin import DistributionView, ClientView, MessageView
 
 
@@ -23,10 +26,22 @@ app = Flask(__name__)
 app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
 # REGISTER BLUEPRINTS
-app.register_blueprint(app_client)
-app.register_blueprint(app_distribution)
-app.register_blueprint(app_messsage)
-app.register_blueprint(app_statistic)
+# app.register_blueprint(app_client)
+# app.register_blueprint(app_distribution)
+# app.register_blueprint(app_messsage)
+# app.register_blueprint(app_statistic)
+# app.register_blueprint(doc_blueprint)
+
+
+# CREATE SWAGGER DOCS
+# doc_blueprint = Blueprint('api', __name__)
+# # api = Api(doc_blueprint, doc='/doc/')
+#
+# api = Api(doc_blueprint, doc='/docs/', version='1.0', title='Distribution Manage API',
+#     description='Distribution manage API, which allow manage with distributions and clients',
+# )
+#
+app.register_blueprint(doc_blueprint)
 
 # set optional bootswatch theme
 # app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
@@ -39,6 +54,7 @@ admin.add_view(MessageView(Message, app.session))
 
 
 # APP CONFIG
+app.config['RESTX_MASK_SWAGGER'] = False
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['DEBUG'] = True
 
