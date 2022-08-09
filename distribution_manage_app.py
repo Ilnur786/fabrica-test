@@ -34,24 +34,17 @@ app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
 
 # CREATE SWAGGER DOCS
-# doc_blueprint = Blueprint('api', __name__)
-# # api = Api(doc_blueprint, doc='/doc/')
-#
-# api = Api(doc_blueprint, doc='/docs/', version='1.0', title='Distribution Manage API',
-#     description='Distribution manage API, which allow manage with distributions and clients',
-# )
-#
 app.register_blueprint(doc_blueprint)
 
 # set optional bootswatch theme
 # app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
 
+# CREATE ADMIN DASHBOARD
 admin = Admin(app, name='Distribution Manage', template_mode='bootstrap4')
 # Add administrative views here
 admin.add_view(DistributionView(Distribution, app.session))
 admin.add_view(ClientView(Client, app.session))
 admin.add_view(MessageView(Message, app.session))
-
 
 # APP CONFIG
 app.config['RESTX_MASK_SWAGGER'] = False
