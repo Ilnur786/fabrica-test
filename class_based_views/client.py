@@ -43,7 +43,7 @@ client_model = ns.model('Client', {
     'mobile_operator_code': fields.String(description='Client mobile operator code'),
     'tag': fields.String(required=True, description='Client filter tag'),
     'timezone': fields.String(description='Client tz. Default value is local tz'),
-    'was_deleted': fields.Boolean(readonly=True, description='Shows client deleted status')
+    'was_deleted': fields.Boolean(readonly=True, description='Shows client deleted status', example=False)
 })
 
 client_model_for_update = ns.model('Client Update', {
@@ -52,7 +52,7 @@ client_model_for_update = ns.model('Client Update', {
     'mobile_operator_code': fields.String(description='Client mobile operator code'),
     'tag': fields.String(required=True, description='Client filter tag'),
     'timezone': fields.String(description='Client tz. Default value is local tz'),
-    'was_deleted': fields.Boolean(description='Shows client deleted status')
+    'was_deleted': fields.Boolean(description='Shows client deleted status', example=False)
 })
 
 clients_model_response = ns.model('Clients Response', {
@@ -71,6 +71,7 @@ class ClientView(Resource):
     # @NS.DOC NEED TO ASSIGN EXPECTED QUERY PARAMS IN SWAGGER DOC.
     # @NS.EXPECT MAKE THIS WORK TOO.
     # @ns.doc(params={'id': '', 'mobile_number': '', 'mobile_operator_code': '', 'tag': '', 'timezone': '', 'was_deleteted': ''})
+    @ns.doc('get_clients')
     @ns.expect(parser_client, validate=False)
     # @ns.marshal_list_with(clients_model_response)
     @ns.response(200, model=clients_model_response, description='Matched clients')
@@ -97,6 +98,7 @@ class ClientView(Resource):
             result = clients_schema.dump(clients)
             return {"message": "Matched clients", "clients": result}
 
+    @ns.doc('create_client')
     @ns.expect(client_model, validate=False)
     # @ns.marshal_with(client_model_response)
     @ns.response(200, model=client_model_response, description='Created new client')
