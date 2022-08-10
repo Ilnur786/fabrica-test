@@ -38,7 +38,7 @@ class MessageSchema(BaseSchema):
 
 class DistributionSchema(BaseSchema):
     id = fields.Int(dump_only=True)
-    start_date = fields.DateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
+    start_date = fields.DateTime(format='%Y-%m-%d %H:%M')
     text = RequiredStr()
     client_filter = RequiredStr()
     end_date = fields.DateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
