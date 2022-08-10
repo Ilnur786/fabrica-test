@@ -40,24 +40,24 @@ parser_distr.add_argument('end_date', type=datetime)
 distr_model = ns.model('Distribution', {
     'id': fields.Integer(readonly=True, description='Distribution unique identifier'),
     'start_date': fields.String(description='Distribution start date',
-                                example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
+                                example=datetime.now().strftime('%Y-%m-%d %H:%M')),
     'text': fields.String(required=True, description='Distribution text'),
     'client_filter': fields.String(required=True, description='Distribution mark to specify client group'),
     'end_date': fields.String(description='Distribution end date',
-                              example=(datetime.now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M')),
-    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status')
+                              example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
+    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status', example=False)
 
 })
 
 distr_model_for_update = ns.model('Distribution Update', {
     'id': fields.Integer(readonly=True, description='Distribution unique identifier'),
     'start_date': fields.String(description='Distribution start date',
-                                example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
+                                example=datetime.now().strftime('%Y-%m-%d %H:%M')),
     'text': fields.String(required=True, description='Distribution text'),
     'client_filter': fields.String(required=True, description='Distribution mark to specify client group'),
     'end_date': fields.String(description='Distribution end date',
-                              example=(datetime.now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M')),
-    'was_deleted': fields.Boolean(description='Shows distribution deleted status')
+                              example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
+    'was_deleted': fields.Boolean(description='Shows distribution deleted status', example=False)
 
 })
 
@@ -108,7 +108,7 @@ class DistrView(Resource):
     @ns.response(422, 'Error message')
     @data_provided_validator
     def post(self):
-        """ Create distribution if given mobile number doesn't exist in database """
+        """ Create distribution """
         json_data = request.get_json()
         # Validate and deserialize input
         try:
@@ -141,7 +141,7 @@ class DistributionIdView(Resource):
         result = distr_schema.dump(distr)
         return {"message": "Requested distribution", "distribution": result}
 
-    @ns.doc('update_client')
+    @ns.doc('update_distribution')
     @ns.expect(distr_model_for_update)
     # @ns.marshal_with(distr_model_response)
     @ns.response(200, model=distr_model_response, description='Successful update')
@@ -149,7 +149,7 @@ class DistributionIdView(Resource):
     @ns.response(404, 'Not Found')
     @data_provided_validator
     def put(self, pk):
-        """ Update client attributes via id """
+        """ Update distribution attributes via id """
         json_data = request.get_json()
         distr = app_distribution.session.query(Distribution).filter_by(id=pk).first()
         if distr is None:
@@ -180,7 +180,7 @@ class DistributionIdView(Resource):
 
 @ns.route('/distribution/all')
 class DistributionAllView(Resource):
-    @ns.doc('get_client_list_include_deleted')
+    @ns.doc('get_distribution_list_include_deleted')
     # @ns.marshal_with(distrs_model_response)
     @ns.response(200, model=distrs_model_response, description='All distributions, include deleted')
     def get(self):
