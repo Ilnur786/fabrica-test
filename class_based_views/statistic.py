@@ -56,7 +56,7 @@ detailed_statistic_model = ns.model('Detailed Statistic', {
                               example=(datetime.now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M')),
     'sent_msgs': fields.List(fields.Nested(statistic_message_model), discription='Sent messages within distribution'),
     'not_sent_msgs': fields.List(fields.Nested(statistic_message_model), discription='Not sent messages within distribution'),
-    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status')
+    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status', example=False)
 
 })
 
@@ -75,7 +75,7 @@ general_statistic_model = ns.model('General Statistic', {
                               example=(datetime.now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M')),
     'sent_msgs_count': fields.Integer(discription='Sent messages count within distribution'),
     'not_sent_msgs_count': fields.Integer(discription='Not sent messages count within distribution'),
-    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status')
+    'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status', example=False)
 })
 
 general_statistic_model_response = ns.model('General Statistic Response', {
@@ -90,20 +90,12 @@ class StatisticView(Resource):
     @ns.response(200, model=general_statistic_model_response, description='General distribution statistic')
     @ns.response(422, 'Error Message')
     def get(self):
-        """ Get general filtered distribution statistic"""
+        """ Get filtered distributions general statistic"""
         http_args = request.args
-        if not http_args:
-            try:
-                distrs = app_statistic.session.query(Distribution).filter_by().all()
-            except InvalidRequestError as err:
-                return {"messages": err.args[0]}
-            msg_text = "All distributions statistic, exclude deleted"
-        else:
-            try:
-                distrs = app_statistic.session.query(Distribution).filter_by(**http_args).all()
-            except InvalidRequestError as err:
-                return {"messages": err.args[0]}
-            msg_text = "Matched distributions statistic"
+        try:
+            distrs = app_statistic.session.query(Distribution).filter_by(**http_args).all()
+        except InvalidRequestError as err:
+            return {"messages": err.args[0]}
         result = []
         for distr in distrs:
             sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()
@@ -111,7 +103,7 @@ class StatisticView(Resource):
             distr_dict = distribution_schema.dump(distr)
             distr_dict.update(sent_msgs_count=sent_msgs_count, not_sent_msgs_count=not_sent_msgs_count)
             result.append(distr_dict)
-        return {"message": msg_text, "distributions": result}
+        return {"message": "Matched distributions statistic", "distributions": result}
 
 
 @ns.route('/statistic/all')
@@ -119,7 +111,7 @@ class StatisticAllView(Resource):
     @ns.response(200, model=general_statistic_model_response, description='General distribution statistic')
     @ns.response(422, 'Error Message')
     def get(self):
-        """ Get general distribution statistic"""
+        """ Get all distributions general statistic"""
         distrs = app_statistic.session.query(Distribution).all()
         result = []
         for distr in distrs:
@@ -136,7 +128,7 @@ class StatisticIdView(Resource):
     @ns.response(200, model=detailed_statistic_model_response, description='Detailed distribution statistic')
     @ns.response(422, 'Error Message')
     def get(self, pk):
-        """ Get detailed distribution statistic"""
+        """ Get detailed statistic via distribution id"""
         distr = app_statistic.session.query(Distribution).filter_by(id=pk).first()
         sent_msgs = distr.message.filter(Message.send_status == 'SENT').all()
         sent_msgs_to_dict = messages_schema.dump(sent_msgs)
