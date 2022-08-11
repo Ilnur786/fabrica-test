@@ -76,10 +76,7 @@ distr_model_response = ns.model('Distribution Response', {
 
 @ns.route('/distribution/')
 class DistrView(Resource):
-    # @NS.DOC NEED TO ASSIGN EXPECTED QUERY PARAMS IN SWAGGER DOC.
-    # @NS.EXPECT MAKE THIS WORK TOO.
     @ns.expect(parser_distr, validate=False)
-    # @ns.marshal_list_with(distrs_model_response)
     @ns.response(200, model=distrs_model_response, description='Matched distributions')
     @ns.response(422, 'Error message')
     def get(self):
@@ -95,7 +92,6 @@ class DistrView(Resource):
         return {"message": "Matched distributions", "distributions": result}
 
     @ns.expect(distr_model, validate=False)
-    # @ns.marshal_with(distr_model_response)
     @ns.response(200, model=distr_model_response, description='Created new distribution')
     @ns.response(422, 'Error message')
     @data_provided_validator
@@ -122,7 +118,6 @@ class DistrView(Resource):
 @ns.route('/distribution/<int:pk>')
 class DistributionIdView(Resource):
     @ns.doc('get_distribution')
-    # @ns.marshal_with(distr_model_response)
     @ns.response(200, model=distr_model_response, description='Requested distribution')
     @ns.response(422, 'Error message')
     @ns.response(404, 'Not Found')
@@ -136,7 +131,6 @@ class DistributionIdView(Resource):
 
     @ns.doc('update_distribution')
     @ns.expect(distr_model_for_update)
-    # @ns.marshal_with(distr_model_response)
     @ns.response(200, model=distr_model_response, description='Successful update')
     @ns.response(422, 'Error message')
     @ns.response(404, 'Not Found')
@@ -160,7 +154,6 @@ class DistributionIdView(Resource):
     @ns.response(200, model=distr_model_response, description='Successful delete')
     @ns.response(422, 'Error message')
     @ns.response(404, 'Not Found')
-    # @ns.marshal_with(distr_model_response)
     def delete(self, pk):
         """ Change 'was_deleted' status on True """
         distr = app_distribution.session.query(Distribution).filter_by(id=pk).first()
@@ -176,7 +169,6 @@ class DistributionIdView(Resource):
 @ns.route('/distribution/all')
 class DistributionAllView(Resource):
     @ns.doc('get_distribution_list_include_deleted')
-    # @ns.marshal_with(distrs_model_response)
     @ns.response(200, model=distrs_model_response, description='All distributions, include deleted')
     def get(self):
         """ Get all distributions, include deleted """

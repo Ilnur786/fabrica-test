@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 
 @dataclass
@@ -10,9 +10,6 @@ class Distribution:
     client_filter: str
     distr_end_date: datetime
 
-
-# a = Distribution(1, datetime.now(), 'hello', 'tag', datetime.now() + timedelta(days=1))
-# print(a)
 
 @dataclass
 class Client:

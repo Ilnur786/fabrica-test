@@ -6,11 +6,13 @@ import requests as req
 from envparse import env
 import time
 from loguru import logger
+from pathlib import Path
 
 
 def main():
     logger.add('./logs/run.log', format="{time: %Y-%m-%d %H:%M:%S} - {level} - {message}", level="INFO")
-    env.read_envfile('config/.env.dev')
+    config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
+    env.read_envfile(config_path)
     TOKEN = env.str('JWT_TOKEN')
     db_session = scoped_session(SessionLocal)
     send_status_cases = ['SENT', 'NOT_SENT', 'FAIL']

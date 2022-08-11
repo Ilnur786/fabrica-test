@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from envparse import env
+from pathlib import Path
 
-env.read_envfile('config/.env.dev')
+config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
+env.read_envfile(config_path)
 
 POSTGRES_USER = env.str('POSTGRES_USER')
 POSTGRES_PASSWORD = env.str('POSTGRES_PASSWORD')
