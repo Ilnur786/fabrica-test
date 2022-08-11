@@ -5,9 +5,11 @@ from db_api import Distribution, Client, Message
 import requests as req
 from envparse import env
 import time
+from loguru import logger
 
 
 def main():
+    logger.add('./logs/run.log', format="{time: %Y-%m-%d %H:%M:%S} - {level} - {message}", level="INFO")
     env.read_envfile('config/.env.dev')
     TOKEN = env.str('JWT_TOKEN')
     db_session = scoped_session(SessionLocal)
@@ -36,8 +38,12 @@ def main():
                     if r.status_code == 200:
                         msg.send_status = "SENT"
                         msg.send_date = datetime.now()
+                        logger.info(f'MESSAGE - {msg} was SENT to CLIENT - {client} within DISTRIBUTION {distr}')
+                        logger.info(f'CLIENT - {client} receive MESSAGE - {msg}')
+                        logger.info(f"DISTRIBUTION'S - {distr} MESSAGE - {msg} was SENT")
                     else:
                         msg.send_status = "FAIL"
+                        logger.info(f'MESSAGE - {msg} SENDING IS FAILED')
                     db_session.commit()
         print('Up to date', datetime.now().strftime('%Y-%m-%d %H:%M'))
         time.sleep(30)
