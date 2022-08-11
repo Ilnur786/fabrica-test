@@ -1,6 +1,5 @@
 venv
 .idea
-.git
+logs
 config/config.ini
 config/.env.dev
-db_api/create_tables.py
