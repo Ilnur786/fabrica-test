@@ -1,10 +1,15 @@
 envparse==0.2.0
 Flask==2.1.2
+Flask_Admin==1.6.0
+Flask_APScheduler==1.12.4
+flask_loguru==1.0.0
+Flask_Mail==0.9.1
+flask_restx==0.5.1
+loguru==0.6.0
 marshmallow==3.17.0
 multimethod==1.8
 pytz==2022.1
+requests==2.28.1
 SQLAlchemy==1.4.39
 tzlocal==4.2
 Werkzeug==2.1.2
-celery~=5.2.7
-redis~=4.3.4
