@@ -1,6 +1,19 @@
 # Тестовое задание Фабрика-решений
 ### Создать API для управления рассылками сообщений
 
+### Локальный запуск:
+* Клонируйте репозиторий на локальную машину: `git clone -b v1.0localrun https://github.com/Ilnur786/fabrique-test.git`
+* Заполните поля в конфиг файле config/.env.prod:
+  * JWT_TOKEN - токен для взаимодействия со сторонним сервисом осуществления рассылки
+  * MAIL_USERNAME - логин от почты отправителя (mail.ru или gmail.ru)
+  * MAIL_PASSWORD - пароль приложения
+  (https://help.mail.ru/mail/security/protection/external, https://support.google.com/accounts/answer/185833?hl=ru)
+  * RECIPIENT_MAIL - эл.почта получателя статистики
+* Запустите `distribution_manage_app.py`
+* Запустите `distribution_maker_app.py`
+* Документация доступна по адресу _/docs/_
+* Админ панель по адресу _/admin/_
+
 ### Задачи
 - [x] Разбить проект на модули:
   - [x] Отделить классы ОРМ моделей
