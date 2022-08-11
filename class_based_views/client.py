@@ -3,6 +3,7 @@ from flask_restx import Resource, Api, fields
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 from marshmallow import ValidationError
+from flask_loguru import logger
 # CURRENT PROJECT MODULES
 from db_api import Client
 from db_api import SessionLocal
@@ -34,6 +35,7 @@ parser_client.add_argument('mobile_number', type=str)
 parser_client.add_argument('mobile_operator_code', type=str)
 parser_client.add_argument('tag', type=str)
 parser_client.add_argument('timezone', type=str)
+parser_client.add_argument('was_deleted', type=bool)
 
 
 # CLIENT MODELS
@@ -79,24 +81,14 @@ class ClientView(Resource):
     def get(self):
         """ Get clients filtered by query params """
         http_args = request.args
-        if not http_args:
-            try:
-                clients = app_client.session.query(Client).filter_by(was_deleted=False).all()
-            except InvalidRequestError as err:
-                return {"messages": err.args[0]}, 422
-            except Exception:
-                return {"message": "External Error"}
-            result = clients_schema.dump(clients)
-            return {"message": "All clients, exclude deleted", "clients": result}
-        else:
-            try:
-                clients = app_client.session.query(Client).filter_by(**http_args, was_deleted=False).all()
-            except InvalidRequestError as err:
-                return {"messages": err.args[0]}, 422
-            except Exception:
-                return {"message": "External Error"}
-            result = clients_schema.dump(clients)
-            return {"message": "Matched clients", "clients": result}
+        try:
+            clients = app_client.session.query(Client).filter_by(**http_args).all()
+        except InvalidRequestError as err:
+            return {"messages": err.args[0]}, 422
+        except Exception:
+            return {"message": "External Error"}
+        result = clients_schema.dump(clients)
+        return {"message": "Matched clients", "clients": result}
 
     @ns.doc('create_client')
     @ns.expect(client_model, validate=False)
@@ -122,6 +114,7 @@ class ClientView(Resource):
                 client = Client(**data)
                 app_client.session.add(client)
                 app_client.session.commit()
+                logger.info(f'CLIENT was CREATED: {client}')
                 result = client_schema.dump(client)
                 return {"message": "Created new client", "client": result}
             else:
@@ -159,6 +152,7 @@ class ClientIdView(Resource):
         if client is None:
             return {"message": "Not found"}, 404
         updated_client = dynamic_update(client, json_data)
+        logger.info(f'CLIENT was UPDATED: {client}')
         try:
             app_client.session.commit()
         except Exception:
@@ -177,6 +171,7 @@ class ClientIdView(Resource):
         if not client:
             return {"message": "Not Found"}
         updated_client = dynamic_update(client, dict(was_deleted=True))
+        logger.info(f'CLIENT was DELETED: {client}')
         app_client.session.commit()
         result = client_schema.dump(updated_client)
         return {"message": "Successful delete", "client": result}
