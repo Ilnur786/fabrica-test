@@ -96,6 +96,8 @@ class StatisticView(Resource):
             distrs = app_statistic.session.query(Distribution).filter_by(**http_args).all()
         except InvalidRequestError as err:
             return {"messages": err.args[0]}
+        except Exception:
+            return {'message': 'External Error'}
         result = []
         for distr in distrs:
             sent_msgs_count = distr.message.filter(Message.send_status == 'SENT').count()

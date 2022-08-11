@@ -3,6 +3,7 @@ from flask_restx import Resource, Api, fields
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import scoped_session
 from marshmallow import ValidationError
+from flask_loguru import logger
 # CURRENT PROJECT MODULES
 from db_api import Distribution
 from db_api import SessionLocal
@@ -34,6 +35,7 @@ parser_distr.add_argument('start_date', type=datetime)
 parser_distr.add_argument('text', type=str)
 parser_distr.add_argument('client_filter', type=str)
 parser_distr.add_argument('end_date', type=datetime)
+parser_distr.add_argument('was_deleted', type=bool)
 
 
 # DISTRIBUTION MODELS
@@ -83,24 +85,14 @@ class DistrView(Resource):
     def get(self):
         """ Get distributions filtered by query params """
         http_args = request.args
-        if not http_args:
-            try:
-                distrs = app_distribution.session.query(Distribution).filter_by(was_deleted=False).all()
-            except InvalidRequestError as err:
-                return {"message": err.args[0]}, 422
-            except Exception:
-                return {"message": "External Error"}
-            result = distrs_schema.dump(distrs)
-            return {"message": "All distributions, exclude deleted", "distributions": result}
-        else:
-            try:
-                distrs = app_distribution.session.query(Distribution).filter_by(**http_args, was_deleted=False).all()
-            except InvalidRequestError as err:
-                return {"messages": err.args[0]}, 422
-            except Exception:
-                return {"message": "External Error"}
-            result = distrs_schema.dump(distrs)
-            return {"message": "Matched distributions", "distributions": result}
+        try:
+            distrs = app_distribution.session.query(Distribution).filter_by(**http_args, was_deleted=False).all()
+        except InvalidRequestError as err:
+            return {"messages": err.args[0]}, 422
+        except Exception:
+            return {"message": "External Error"}
+        result = distrs_schema.dump(distrs)
+        return {"message": "Matched distributions", "distributions": result}
 
     @ns.expect(distr_model, validate=False)
     # @ns.marshal_with(distr_model_response)
@@ -121,6 +113,7 @@ class DistrView(Resource):
         distr = Distribution(**data)
         app_distribution.session.add(distr)
         app_distribution.session.commit()
+        logger.info(f'DISTRIBUTION was CREATED: {distr}')
         # MESSAGES WILL BE CREATED AFTER DISTRIBUTION START TIME WILL COME AND DISTRIBUTION_MAKER_APP WILL MAKE DISTRIBUTION
         result = distr_schema.dump(distr)
         return {"message": "Created new distribution", "distribution": result}
@@ -159,6 +152,7 @@ class DistributionIdView(Resource):
             app_distribution.session.commit()
         except Exception:
             return {"messages": 'External Error'}, 422
+        logger.info(f'DISTRIBUTION was UPDATED: {distr}')
         result = distr_schema.dump(updated_distr)
         return {"message": "Successful update", "distribution": result}
 
@@ -174,6 +168,7 @@ class DistributionIdView(Resource):
             return {"message": "Not Found"}
         updated_distr = dynamic_update(distr, dict(was_deleted=True))
         app_distribution.session.commit()
+        logger.info(f'DISTRIBUTION was DELETED: {distr}')
         result = distr_schema.dump(updated_distr)
         return {"message": "Successful delete", "distribution": result}
 
