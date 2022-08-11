@@ -2,7 +2,7 @@ from flask import Blueprint, _app_ctx_stack
 from flask_restx import Resource, Api, fields
 from sqlalchemy.orm import scoped_session
 # CURRENT PROJECT MODULES
-from db_api import Distribution, Message
+from db_api import Message
 from db_api import SessionLocal
 from json_validator import MessageSchema
 from datetime import datetime
