@@ -1,5 +1,4 @@
-from marshmallow import Schema, fields, ValidationError, pre_load, post_dump, pre_dump, validates_schema
-from marshmallow.validate import Length
+from marshmallow import Schema, fields, ValidationError, pre_load, validates_schema
 from functools import partial
 from datetime import datetime, timedelta
 import tzlocal
@@ -22,8 +21,6 @@ class BaseSchema(Schema):
 
 class MessageSchema(BaseSchema):
     id = fields.Int(dump_only=True)
-    # maybe send_date, distribution_id, client_id field is redundant? cause send_date will be sat when message will send
-    # NO, it doesn't. Cause that fields should be in schema for execute dumping. I did them not required
     send_date = fields.DateTime()
     send_status = fields.String()
     distribution_id = fields.Int()
@@ -60,7 +57,7 @@ class DistributionSchema(BaseSchema):
 class ClientSchema(BaseSchema):
     id = fields.Int(dump_only=True)
     mobile_number = RequiredStr()
-    mobile_operator_code = fields.Str()  # mobile_operator_code isn't required cause, that is just three number after country code
+    mobile_operator_code = fields.Str()
     tag = RequiredStr()
     timezone = fields.Str()
     was_deleted = fields.Bool()

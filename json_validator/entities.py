@@ -11,9 +11,6 @@ class Distribution:
     distr_end_date: datetime
 
 
-# a = Distribution(1, datetime.now(), 'hello', 'tag', datetime.now() + timedelta(days=1))
-# print(a)
-
 @dataclass
 class Client:
     id: int

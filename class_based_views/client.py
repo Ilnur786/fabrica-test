@@ -70,12 +70,8 @@ client_model_response = ns.model('Client Response', {
 
 @ns.route('/client/')
 class ClientView(Resource):
-    # @NS.DOC NEED TO ASSIGN EXPECTED QUERY PARAMS IN SWAGGER DOC.
-    # @NS.EXPECT MAKE THIS WORK TOO.
-    # @ns.doc(params={'id': '', 'mobile_number': '', 'mobile_operator_code': '', 'tag': '', 'timezone': '', 'was_deleteted': ''})
     @ns.doc('get_clients')
     @ns.expect(parser_client, validate=False)
-    # @ns.marshal_list_with(clients_model_response)
     @ns.response(200, model=clients_model_response, description='Matched clients')
     @ns.response(422, 'Error message')
     def get(self):
@@ -92,7 +88,6 @@ class ClientView(Resource):
 
     @ns.doc('create_client')
     @ns.expect(client_model, validate=False)
-    # @ns.marshal_with(client_model_response)
     @ns.response(200, model=client_model_response, description='Created new client')
     @ns.response(422, 'Error message')
     @data_provided_validator
@@ -126,7 +121,6 @@ class ClientView(Resource):
 @ns.route('/client/<int:pk>')
 class ClientIdView(Resource):
     @ns.doc('get_client')
-    # @ns.marshal_with(client_model_response)
     @ns.response(200, model=client_model_response, description='Requested client')
     @ns.response(422, 'Error message')
     @ns.response(404, 'Not Found')
@@ -162,7 +156,6 @@ class ClientIdView(Resource):
 
     @ns.doc('delete_client')
     @ns.response(422, 'Error message')
-    # @ns.marshal_with(client_model_response)
     @ns.response(200, model=client_model_response, description='Successful delete')
     @ns.response(404, 'Not Found')
     def delete(self, pk):
@@ -180,7 +173,6 @@ class ClientIdView(Resource):
 @ns.route('/client/all')
 class ClientAllView(Resource):
     @ns.doc('get_client_list_include_deleted')
-    # @ns.marshal_with(clients_model_response)
     @ns.response(200, model=clients_model_response, description='All clients, include deleted')
     def get(self):
         """ Get all clients, include deleted """
