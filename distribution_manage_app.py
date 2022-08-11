@@ -1,4 +1,4 @@
-from flask import Flask, _app_ctx_stack, Blueprint
+from flask import Flask, _app_ctx_stack
 from sqlalchemy.orm import scoped_session
 import pytz
 import secrets
@@ -9,7 +9,7 @@ from flask_apscheduler import APScheduler
 from flask_admin import Admin
 import requests as req
 import os
-from flask_restx import Api
+from flask_loguru import Logger
 # CURRENT PROJECT MODULES
 from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
@@ -22,6 +22,15 @@ env.read_envfile('config/.env.dev')
 app = Flask(__name__)
 app.session = scoped_session(SessionLocal, scopefunc=_app_ctx_stack)
 
+# SETUP LOGGER
+log = Logger()
+
+log.init_app(app, config={
+    "LOG_PATH": "./logs",
+    "LOG_NAME": "run.log",
+    "LOG_FORMAT": '{time: %Y-%m-%d %H:%M:%S} - {level} - {message}',
+    "LOG_SERIALIZE": False
+})
 
 # CREATE SWAGGER DOCS
 app.register_blueprint(doc_blueprint)
@@ -60,7 +69,7 @@ Base.metadata.create_all(bind=engine)
 
 
 def send_email():
-    r = req.get(url='http://127.0.0.1:5000/api/v1/distribution/statistic/all')
+    r = req.get(url='http://127.0.0.1:5000/api/v1/statistic/all')
     with app.app_context():
         subject = 'Distribution Statistic'
         sender = app.config['MAIL_USERNAME']
