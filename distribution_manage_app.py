@@ -15,8 +15,10 @@ from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
 from class_based_views import doc_blueprint
 from admin import DistributionView, ClientView, MessageView
+from pathlib import Path
 
-env.read_envfile('config/.env.dev')
+config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
+env.read_envfile(config_path)
 
 # CREATE FLASK APP
 app = Flask(__name__)
