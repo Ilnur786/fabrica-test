@@ -1,0 +1,70 @@
+version: "3.4"
+
+services:
+
+  database:
+    # Official Postgres image from DockerHub (we use the last version)
+    image: "postgres:latest"
+
+    env_file:
+      - config/.env.dev
+
+    # By default, a Postgres database is running on the 5432 port.
+    # If we want to access the database from our computer (outside the container),
+    # we must share the port with our computer's port.
+    # The syntax is [port we want on our machine]:[port we want to retrieve in the container]
+    # Note: You are free to change your computer's port,
+    # but take into consideration that it will change the way
+    # you are connecting to your database.
+
+    volumes:
+      # In this example, we share the folder `db-data` in our root repository, with the default PostgreSQL data path.
+      # It means that every time the repository is modifying the data inside
+      # of `/var/lib/postgresql/data/`, automatically the change will appear in `db-data`.
+      # You don't need to create the `db-data` folder. Docker Compose will do it for you.
+      - ./db-data/:/var/lib/postgresql/data/
+
+    restart: always
+
+  distribution_manage:
+
+    build:
+      context: .
+      dockerfile: distribution_manage.dockerfile
+
+    env_file:
+      - config/.env.dev
+
+    command: python /app/distribution_manage_app.py
+
+    ports:
+      - "5000:5000"
+
+    restart: always
+
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - ./logs/:/app/logs/
+
+    depends_on:
+      - database
+
+  distribution_maker:
+
+    build:
+      context: .
+      dockerfile: distribution_maker.dockerfile
+
+    env_file:
+      - config/.env.dev
+
+    command: python /app/distribution_maker_app.py
+
+    restart: always
+
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - ./logs/:/app/logs/
+
+    depends_on:
+      - distribution_manage

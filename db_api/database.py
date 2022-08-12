@@ -1,20 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from envparse import env
-from pathlib import Path
+import os
 
-config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
-env.read_envfile(config_path)
-
-POSTGRES_USER = env.str('POSTGRES_USER')
-POSTGRES_PASSWORD = env.str('POSTGRES_PASSWORD')
-POSTGRES_HOST = env.str('POSTGRES_HOST')
-POSTGRES_PORT = env.str('POSTGRES_PORT')
-POSTGRES_DB = env.str('POSTGRES_DB')
+POSTGRES_USER = os.getenv('POSTGRES_USER')
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
+POSTGRES_HOST = os.getenv('POSTGRES_HOST')
+POSTGRES_PORT = os.getenv('POSTGRES_PORT')
+POSTGRES_DB = os.getenv('POSTGRES_DB')
 SQLALCHEMY_DATABASE_URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=10,
+    max_overflow=20
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

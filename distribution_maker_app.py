@@ -1,19 +1,20 @@
 from sqlalchemy.orm import scoped_session
 from datetime import datetime
-from db_api import SessionLocal
-from db_api import Distribution, Client, Message
 import requests as req
-from envparse import env
 import time
 from loguru import logger
 from pathlib import Path
+import os
+# CURRENT PROJECT IMPORTS
+from db_api import SessionLocal
+from db_api import Distribution, Client, Message
 
 
 def main():
     logger.add('./logs/run.log', format="{time: %Y-%m-%d %H:%M:%S} - {level} - {message}", level="INFO")
     config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
-    env.read_envfile(config_path)
-    TOKEN = env.str('JWT_TOKEN')
+    os.getenv(config_path)
+    TOKEN = os.getenv('JWT_TOKEN')
     db_session = scoped_session(SessionLocal)
     send_status_cases = ['SENT', 'NOT_SENT', 'FAIL']
     s = req.session()
@@ -47,7 +48,7 @@ def main():
                         msg.send_status = "FAIL"
                         logger.info(f'MESSAGE - {msg} SENDING IS FAILED')
                     db_session.commit()
-        print('Up to date', datetime.now().strftime('%Y-%m-%d %H:%M'))
+        print('Up to date', datetime.now().strftime('%Y-%m-%d %H:%M'), flush=True)
         time.sleep(30)
 
 

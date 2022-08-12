@@ -2,7 +2,6 @@ from flask import Flask, _app_ctx_stack
 from sqlalchemy.orm import scoped_session
 import pytz
 import secrets
-from envparse import env
 from flask_mail import Mail
 from flask_mail import Message as FlaskMessage
 from flask_apscheduler import APScheduler
@@ -10,15 +9,12 @@ from flask_admin import Admin
 import requests as req
 import os
 from flask_loguru import Logger
+from distutils.util import strtobool
 # CURRENT PROJECT MODULES
 from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
 from class_based_views import doc_blueprint
 from admin import DistributionView, ClientView, MessageView
-from pathlib import Path
-
-config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
-env.read_envfile(config_path)
 
 # CREATE FLASK APP
 app = Flask(__name__)
@@ -51,11 +47,11 @@ admin.add_view(MessageView(Message, app.session))
 # APP CONFIG
 app.config['RESTX_MASK_SWAGGER'] = False
 app.config['SECRET_KEY'] = secrets.token_hex(16)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = bool(strtobool(os.getenv('DEBUG')))
 
 # FLASK-MAIL CONFIG
-app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_SERVER'] = 'smtp.mail.ru' if '@mail.ru' in app.config['MAIL_USERNAME'] else 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 25 if '@mail.ru' in app.config['MAIL_USERNAME'] else 587
 app.config['MAIL_USE_TLS'] = True
@@ -75,7 +71,7 @@ def send_email():
     with app.app_context():
         subject = 'Distribution Statistic'
         sender = app.config['MAIL_USERNAME']
-        recipients = [env.str('RECIPIENT_MAIL')]
+        recipients = [os.getenv('RECIPIENT_MAIL')]
         msg = FlaskMessage(subject=subject, sender=sender, recipients=recipients)
         msg.body = r.text
         mail.send(msg)
@@ -85,4 +81,4 @@ if __name__ == "__main__":
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         scheduler.add_job(id='Scheduled Task', func=send_email, trigger="interval", hours=24)
         scheduler.start()
-    app.run()
+    app.run(host='0.0.0.0', port=5000)

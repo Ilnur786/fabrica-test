@@ -1,6 +1,20 @@
 # Тестовое задание Фабрика-решений
 ### Создать API для управления рассылками сообщений
 
+### Инструкция по локальному запуску лежит в ветке [v1.0localrun](https://github.com/Ilnur786/fabrique-test/tree/v1.0localrun)
+
+### Запуск через docker-compose:
+* Клонируйте репозиторий на локальную машину: `git clone https://github.com/Ilnur786/fabrique-test.git`
+* Убедитесь что на вашей машине установлен docker и docker-compose
+  * Заполните поля в конфиг файле config/.env.prod:
+  * JWT_TOKEN - токен для взаимодействия со сторонним сервисом осуществления рассылки
+  * MAIL_USERNAME - логин от почты отправителя (mail.ru или gmail.ru)
+  * MAIL_PASSWORD - пароль приложения (https://help.mail.ru/mail/security/protection/external, https://support.google.com/accounts/answer/185833?hl=ru)
+  * RECIPIENT_MAIL - эл.почта получателя статистики
+* Находясь в папке проекта запустите команду в терминале: `docker-compose up`
+
+Проект разрабатывался и тестировался на Windows 10 64bit (python 3.8.0).
+
 ### Задачи
 - [x] Разбить проект на модули:
   - [x] Отделить классы ОРМ моделей

@@ -42,19 +42,18 @@ parser_client.add_argument('was_deleted', type=bool)
 client_model = ns.model('Client', {
     'id': fields.Integer(readonly=True, description='Client unique identifier'),
     'mobile_number': fields.String(required=True, description='Client mobile number', example='79178542569'),
-    'mobile_operator_code': fields.String(description='Client mobile operator code'),
-    'tag': fields.String(required=True, description='Client filter tag'),
-    'timezone': fields.String(description='Client tz. Default value is local tz'),
+    'mobile_operator_code': fields.String(description='Client mobile operator code', example=''),
+    'tag': fields.String(required=True, description='Client filter tag', example=''),
+    'timezone': fields.String(description='Client tz. Default value is local tz', example='Europe/Moscow'),
     'was_deleted': fields.Boolean(readonly=True, description='Shows client deleted status', example=False)
 })
 
 client_model_for_update = ns.model('Client Update', {
     'id': fields.Integer(readonly=True, description='Client unique identifier'),
-    'mobile_number': fields.String(required=True, description='Client mobile number'),
+    'mobile_number': fields.String(description='Client mobile number'),
     'mobile_operator_code': fields.String(description='Client mobile operator code'),
-    'tag': fields.String(required=True, description='Client filter tag'),
+    'tag': fields.String(description='Client filter tag'),
     'timezone': fields.String(description='Client tz. Default value is local tz'),
-    'was_deleted': fields.Boolean(description='Shows client deleted status', example=False)
 })
 
 clients_model_response = ns.model('Clients Response', {
