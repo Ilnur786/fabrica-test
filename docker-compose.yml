@@ -7,7 +7,7 @@ services:
     image: "postgres:latest"
 
     env_file:
-      - config/.env.dev
+      - config/.env.prod
 
     # By default, a Postgres database is running on the 5432 port.
     # If we want to access the database from our computer (outside the container),
@@ -33,7 +33,7 @@ services:
       dockerfile: distribution_manage.dockerfile
 
     env_file:
-      - config/.env.dev
+      - config/.env.prod
 
     command: python /app/distribution_manage_app.py
 
@@ -56,7 +56,7 @@ services:
       dockerfile: distribution_maker.dockerfile
 
     env_file:
-      - config/.env.dev
+      - config/.env.prod
 
     command: python /app/distribution_maker_app.py
 
