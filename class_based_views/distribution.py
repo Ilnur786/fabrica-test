@@ -41,11 +41,11 @@ parser_distr.add_argument('was_deleted', type=bool)
 # DISTRIBUTION MODELS
 distr_model = ns.model('Distribution', {
     'id': fields.Integer(readonly=True, description='Distribution unique identifier'),
-    'start_date': fields.String(description='Distribution start date',
+    'start_date': fields.String(required=True, description='Distribution start date',
                                 example=datetime.now().strftime('%Y-%m-%d %H:%M')),
-    'text': fields.String(required=True, description='Distribution text'),
-    'client_filter': fields.String(required=True, description='Distribution mark to specify client group'),
-    'end_date': fields.String(description='Distribution end date',
+    'text': fields.String(required=True, description='Distribution text', example=''),
+    'client_filter': fields.String(required=True, description='Distribution mark to specify client group', example=''),
+    'end_date': fields.String(required=True, description='Distribution end date',
                               example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
     'was_deleted': fields.Boolean(readonly=True, description='Shows distribution deleted status', example=False)
 
@@ -55,12 +55,11 @@ distr_model_for_update = ns.model('Distribution Update', {
     'id': fields.Integer(readonly=True, description='Distribution unique identifier'),
     'start_date': fields.String(description='Distribution start date',
                                 example=datetime.now().strftime('%Y-%m-%d %H:%M')),
-    'text': fields.String(required=True, description='Distribution text'),
-    'client_filter': fields.String(required=True, description='Distribution mark to specify client group'),
+    'text': fields.String(description='Distribution text', example=''),
+    'client_filter': fields.String(description='Distribution mark to specify client group', example=''),
     'end_date': fields.String(description='Distribution end date',
                               example=(datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')),
     'was_deleted': fields.Boolean(description='Shows distribution deleted status', example=False)
-
 })
 
 distrs_model_response = ns.model('Distributions Response', {
