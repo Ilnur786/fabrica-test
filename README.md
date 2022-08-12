@@ -12,6 +12,8 @@
   * MAIL_PASSWORD - пароль приложения (https://help.mail.ru/mail/security/protection/external, https://support.google.com/accounts/answer/185833?hl=ru)
   * RECIPIENT_MAIL - эл.почта получателя статистики
 * Находясь в папке проекта запустите команду в терминале: `docker-compose up`
+* Документация по адресу /docs/
+* Админ панель по адресу /admin/
 
 Проект разрабатывался и тестировался на Windows 10 64bit (python 3.8.0).
 
