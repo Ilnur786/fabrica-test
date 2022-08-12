@@ -10,6 +10,7 @@ from flask_admin import Admin
 import requests as req
 import os
 from flask_loguru import Logger
+from distutils.util import strtobool
 # CURRENT PROJECT MODULES
 from db_api import Base, SessionLocal, engine
 from db_api import Distribution, Client, Message
@@ -54,7 +55,7 @@ app.config['SECRET_KEY'] = secrets.token_hex(16)
 app.config['DEBUG'] = True
 
 # FLASK-MAIL CONFIG
-app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
+app.config['MAIL_USERNAME'] = bool(strtobool(os.getenv('DEBUG')))
 app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
 app.config['MAIL_SERVER'] = 'smtp.mail.ru' if '@mail.ru' in app.config['MAIL_USERNAME'] else 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 25 if '@mail.ru' in app.config['MAIL_USERNAME'] else 587
