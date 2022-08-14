@@ -95,7 +95,7 @@ class StatisticView(Resource):
         try:
             distrs = app_statistic.session.query(Distribution).filter_by(**http_args).all()
         except InvalidRequestError as err:
-            return {"messages": err.args[0]}
+            return {"message": err.args[0]}
         except Exception:
             return {'message': 'External Error'}
         result = []

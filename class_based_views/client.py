@@ -79,7 +79,7 @@ class ClientView(Resource):
         try:
             clients = app_client.session.query(Client).filter_by(**http_args).all()
         except InvalidRequestError as err:
-            return {"messages": err.args[0]}, 422
+            return {"message": err.args[0]}, 422
         except Exception:
             return {"message": "External Error"}
         result = clients_schema.dump(clients)
@@ -101,7 +101,7 @@ class ClientView(Resource):
         try:
             client = app_client.session.query(Client).filter_by(mobile_number=data['mobile_number']).first()
         except Exception:
-            return {"messages": 'External Error'}, 422
+            return {"message": 'External Error'}, 422
         else:
             if client is None:
                 # Create a new client
@@ -149,7 +149,7 @@ class ClientIdView(Resource):
         try:
             app_client.session.commit()
         except Exception:
-            return {"messages": 'External Error'}, 422
+            return {"message": 'External Error'}, 422
         result = client_schema.dump(updated_client)
         return {"message": "Successful update", "client": result}
 

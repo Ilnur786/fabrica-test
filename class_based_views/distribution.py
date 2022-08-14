@@ -84,7 +84,7 @@ class DistrView(Resource):
         try:
             distrs = app_distribution.session.query(Distribution).filter_by(**http_args, was_deleted=False).all()
         except InvalidRequestError as err:
-            return {"messages": err.args[0]}, 422
+            return {"message": err.args[0]}, 422
         except Exception:
             return {"message": "External Error"}
         result = distrs_schema.dump(distrs)
@@ -103,7 +103,7 @@ class DistrView(Resource):
         except ValidationError as err:
             return err.messages, 422
         except Exception:
-            return {"messages": 'External Error'}, 422
+            return {"message": 'External Error'}, 422
         # Create a new distribution
         distr = Distribution(**data)
         app_distribution.session.add(distr)
@@ -144,7 +144,7 @@ class DistributionIdView(Resource):
         try:
             app_distribution.session.commit()
         except Exception:
-            return {"messages": 'External Error'}, 422
+            return {"message": 'External Error'}, 422
         logger.info(f'DISTRIBUTION was UPDATED: {distr}')
         result = distr_schema.dump(updated_distr)
         return {"message": "Successful update", "distribution": result}
