@@ -12,8 +12,6 @@ from db_api import Distribution, Client, Message
 
 def main():
     logger.add('./logs/run.log', format="{time: %Y-%m-%d %H:%M:%S} - {level} - {message}", level="INFO")
-    config_path = 'config/.env.dev' if Path('config/.env.dev').exists() else 'config/.env.prod'
-    os.getenv(config_path)
     TOKEN = os.getenv('JWT_TOKEN')
     db_session = scoped_session(SessionLocal)
     send_status_cases = ['SENT', 'NOT_SENT', 'FAIL']
