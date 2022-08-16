@@ -133,7 +133,6 @@ class ClientIdView(Resource):
 
     @ns.doc('update_client')
     @ns.expect(client_model_for_update)
-    # @ns.marshal_with(client_model_response)
     @ns.response(200, model=client_model_response, description='Successful update')
     @ns.response(422, 'Error message')
     @ns.response(404, 'Not Found')
