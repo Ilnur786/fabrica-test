@@ -6,7 +6,7 @@
 ### Запуск через docker-compose:
 * Клонируйте репозиторий на локальную машину: `git clone https://github.com/Ilnur786/fabrique-test.git`
 * Убедитесь что на вашей машине установлен docker и docker-compose
-  * Заполните поля в конфиг файле config/.env.prod:
+* Заполните поля в конфиг файле config/.env.prod:
   * JWT_TOKEN - токен для взаимодействия со сторонним сервисом осуществления рассылки
   * MAIL_USERNAME - логин от почты отправителя (mail.ru или gmail.ru)
   * MAIL_PASSWORD - пароль приложения (https://help.mail.ru/mail/security/protection/external, https://support.google.com/accounts/answer/185833?hl=ru)
