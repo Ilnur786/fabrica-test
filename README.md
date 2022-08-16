@@ -8,7 +8,7 @@
 * Убедитесь что на вашей машине установлен docker и docker-compose
 * Заполните поля в конфиг файле config/.env.prod:
   * JWT_TOKEN - токен для взаимодействия со сторонним сервисом осуществления рассылки
-  * MAIL_USERNAME - логин от почты отправителя (mail.ru или gmail.ru)
+  * MAIL_USERNAME - логин от почты отправителя (mail.ru или gmail.com)
   * MAIL_PASSWORD - пароль приложения (https://help.mail.ru/mail/security/protection/external, https://support.google.com/accounts/answer/185833?hl=ru)
   * RECIPIENT_MAIL - эл.почта получателя статистики
 * Находясь в папке проекта запустите команду в терминале: `docker-compose up`
