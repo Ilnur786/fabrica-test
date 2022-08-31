@@ -26,12 +26,6 @@ class MessageSchema(BaseSchema):
     distribution_id = fields.Int()
     client_id = fields.Int()
 
-    @pre_load
-    def set_data(self, data, **kwargs):
-        data['send_date'] = None
-        data['send_status'] = False
-        return data
-
 
 class DistributionSchema(BaseSchema):
     id = fields.Int(dump_only=True)
@@ -41,13 +35,13 @@ class DistributionSchema(BaseSchema):
     end_date = fields.DateTime(validate=validate_datetime, format='%Y-%m-%d %H:%M')
     was_deleted = fields.Bool()
 
-    @pre_load()
+    @pre_load
     def create_start_date(self, data, **kwargs):
         if not data.get('start_date'):
             data['start_date'] = datetime.now()
         return data
 
-    @pre_load()
+    @pre_load
     def create_end_date(self, data, **kwargs):
         if not data.get('end_date'):
             data['end_date'] = datetime.now() + timedelta(hours=1)
