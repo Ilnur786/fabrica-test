@@ -52,10 +52,10 @@ admin.add_view(MessageView(Message, app.session))
 # APP CONFIG
 app.config['RESTX_MASK_SWAGGER'] = False
 app.config['SECRET_KEY'] = secrets.token_hex(16)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = bool(strtobool(os.getenv('DEBUG')))
 
 # FLASK-MAIL CONFIG
-app.config['MAIL_USERNAME'] = bool(strtobool(os.getenv('DEBUG')))
+app.config['MAIL_USERNAME'] = env.str('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = env.str('MAIL_PASSWORD')
 app.config['MAIL_SERVER'] = 'smtp.mail.ru' if '@mail.ru' in app.config['MAIL_USERNAME'] else 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 25 if '@mail.ru' in app.config['MAIL_USERNAME'] else 587
